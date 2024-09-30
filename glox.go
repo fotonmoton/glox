@@ -7,20 +7,69 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
 func main() {
 
-	switch len(os.Args) {
-	case 1:
-		runPrompt()
-	case 2:
-		runFile(os.Args[1])
-	default:
-		println("Usage: glox [file]")
+	expr := &Binary{
+		left: &Literal{value: 1},
+		op:   Token{typ: PLUS, lexeme: "+", literal: "", line: 1},
+		right: &Binary{
+			left:  &Literal{value: 3},
+			op:    Token{typ: PLUS, lexeme: "+", literal: "", line: 1},
+			right: &Literal{value: 4},
+		},
+	}
+
+	println((&AstStringer{}).String(expr))
+
+	// switch len(os.Args) {
+	// case 1:
+	// 	runPrompt()
+	// case 2:
+	// 	runFile(os.Args[1])
+	// default:
+	// 	println("Usage: glox [file]")
+	// 	os.Exit(1)
+	// }
+}
+
+func runPrompt() {
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Split(bufio.ScanLines)
+
+	for {
+		print("> ")
+		scanner.Scan()
+		line := scanner.Text()
+		if len(line) == 0 {
+			break
+		}
+		run([]byte(scanner.Text()))
+		hadError = false
+	}
+}
+
+func runFile(path string) {
+	file, err := os.ReadFile(path)
+
+	panic(err)
+
+	run(file)
+
+	if hadError {
 		os.Exit(1)
+	}
+}
+
+func run(source []byte) {
+	tokens := newScanner(source).scan()
+
+	for _, token := range tokens {
+		println(token.String())
 	}
 }
 
@@ -98,6 +147,69 @@ var keywords = map[string]TokenType{
 	"while":  WHILE,
 }
 
+type Expr interface {
+	expr()
+	accept(v Visitor)
+}
+
+type Unary struct {
+	op    Token
+	right Expr
+}
+
+type Grouping struct {
+	expr Expr
+}
+
+type Literal struct {
+	value any
+}
+
+func (l *Literal) expr() {}
+func (l *Literal) accept(v Visitor) {
+	v.visitLiteral(l)
+}
+
+type Binary struct {
+	left  Expr
+	op    Token
+	right Expr
+}
+
+func (b *Binary) expr() {}
+func (b *Binary) accept(v Visitor) {
+	v.visitBinary(b)
+}
+
+type Visitor interface {
+	visitBinary(b *Binary)
+	visitLiteral(l *Literal)
+}
+
+type AstStringer struct {
+	str strings.Builder
+}
+
+func (as *AstStringer) String(expr Expr) string {
+	expr.accept(as)
+	return as.str.String()
+}
+
+func (as *AstStringer) visitBinary(b *Binary) {
+	as.str.WriteString("(")
+	as.str.WriteString(b.op.lexeme)
+	as.str.WriteString(" ")
+	b.left.accept(as)
+	as.str.WriteString(" ")
+	b.right.accept(as)
+	as.str.WriteString(")")
+
+}
+
+func (as *AstStringer) visitLiteral(l *Literal) {
+	as.str.WriteString(fmt.Sprintf("%v", l.value))
+}
+
 type Token struct {
 	typ     TokenType
 	lexeme  string
@@ -105,7 +217,7 @@ type Token struct {
 	line    int
 }
 
-func (t *Token) string() string {
+func (t *Token) String() string {
 	return fmt.Sprintf("%s - %s - %v", t.typ, t.lexeme, t.literal)
 }
 
@@ -320,41 +432,5 @@ func (s *Scanner) isAtEnd() bool {
 func panic(err error) {
 	if err != nil {
 		log.Fatal(err)
-	}
-}
-
-func runPrompt() {
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Split(bufio.ScanLines)
-
-	for {
-		print("> ")
-		scanner.Scan()
-		line := scanner.Text()
-		if len(line) == 0 {
-			break
-		}
-		run([]byte(scanner.Text()))
-		hadError = false
-	}
-}
-
-func runFile(path string) {
-	file, err := os.ReadFile(path)
-
-	panic(err)
-
-	run(file)
-
-	if hadError {
-		os.Exit(1)
-	}
-}
-
-func run(source []byte) {
-	tokens := newScanner(source).scan()
-
-	for _, token := range tokens {
-		println(token.string())
 	}
 }
