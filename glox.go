@@ -7,17 +7,6 @@ import (
 )
 
 func main() {
-	expr := &Binary{
-		&Unary{Token{MINUS, "-", nil, 1}, &Literal{123}},
-		Token{STAR, "*", nil, 1},
-		&Grouping{&Grouping{&Binary{
-			&Unary{Token{MINUS, "-", nil, 1}, &Literal{123}},
-			Token{STAR, "*", nil, 1},
-			&Grouping{&Grouping{&Literal{45.67}}}}}},
-	}
-
-	println(AstStringer{}.String(expr))
-
 	switch len(os.Args) {
 	case 1:
 		runPrompt()
@@ -48,24 +37,21 @@ func runPrompt() {
 func runFile(path string) {
 	file, err := os.ReadFile(path)
 
-	panic(err)
+	try(err)
 
 	run(file)
-
-	if hadError {
-		os.Exit(1)
-	}
 }
 
 func run(source []byte) {
 	tokens := newScanner(source).scan()
 
-	for _, token := range tokens {
-		println(token.String())
-	}
+	ast := newParser(tokens).parse()
+
+	println(AstStringer{}.String(ast))
+	println(AstToRPN{}.String(ast))
 }
 
-func panic(err error) {
+func try(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}

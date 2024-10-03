@@ -8,8 +8,6 @@ import (
 	"unicode/utf8"
 )
 
-var hadError = false
-
 //go:generate go run golang.org/x/tools/cmd/stringer -type=TokenType
 type TokenType int
 
@@ -193,7 +191,7 @@ func (s *Scanner) scanToken() {
 			break
 		}
 
-		s.printError(fmt.Sprintf("Unexpected character %s", string(c)))
+		report(s.line, "", fmt.Sprintf("Unexpected character %s", string(c)))
 	}
 }
 
@@ -226,7 +224,7 @@ func (s *Scanner) string() {
 	}
 
 	if s.isAtEnd() {
-		s.printError("Unterminated string")
+		report(s.line, "", "Unterminated string")
 		return
 	}
 
@@ -251,7 +249,7 @@ func (s *Scanner) number() {
 	num, err := strconv.ParseFloat(string(s.source[s.start:s.current]), 64)
 
 	if err != nil {
-		s.printError(err.Error())
+		report(s.line, "", err.Error())
 	}
 
 	s.addToken(NUMBER, num)
@@ -288,15 +286,15 @@ func (s *Scanner) match(ch rune) bool {
 	}
 
 	decoded, size := utf8.DecodeRune(s.source[s.current:])
+
+	if decoded != ch {
+		return false
+	}
+
 	s.current += size
-	return ch == decoded
+	return true
 }
 
 func (s *Scanner) isAtEnd() bool {
 	return s.current >= len(s.source)
-}
-
-func (s *Scanner) printError(message string) {
-	fmt.Printf("[line %d] Error: %s\n", s.line, message)
-	hadError = true
 }
