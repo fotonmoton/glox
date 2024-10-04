@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 )
@@ -31,6 +32,7 @@ func runPrompt() {
 		}
 		run([]byte(scanner.Text()))
 		hadError = false
+		hadRuntimeError = false
 	}
 }
 
@@ -40,15 +42,39 @@ func runFile(path string) {
 	try(err)
 
 	run(file)
+
+	switch {
+	case hadError:
+		os.Exit(65)
+	case hadRuntimeError:
+		os.Exit(70)
+	default:
+		os.Exit(0)
+	}
 }
 
 func run(source []byte) {
 	tokens := newScanner(source).scan()
 
+	if hadError {
+		return
+	}
+
 	ast := newParser(tokens).parse()
 
+	if hadError {
+		return
+	}
+
 	println(AstStringer{}.String(ast))
-	println(AstToRPN{}.String(ast))
+
+	res := newInterpreter().evaluate(ast)
+
+	if hadRuntimeError {
+		return
+	}
+
+	fmt.Printf("%v\n", res)
 }
 
 func try(err error) {

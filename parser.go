@@ -88,7 +88,7 @@ func (p *Parser) factor() Expr {
 	for p.match(SLASH, STAR) {
 		op := p.previous()
 		right := p.unary()
-		exp = &Unary{op, right}
+		exp = &Binary{exp, op, right}
 	}
 
 	return exp
@@ -190,14 +190,7 @@ func (p *Parser) synchronize() {
 		}
 
 		switch p.peek().typ {
-		case CLASS:
-		case FOR:
-		case FUN:
-		case IF:
-		case PRINT:
-		case RETURN:
-		case VAR:
-		case WHILE:
+		case CLASS, FOR, FUN, IF, PRINT, RETURN, VAR, WHILE:
 			return
 		}
 
