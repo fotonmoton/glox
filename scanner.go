@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"unicode"
@@ -91,19 +92,29 @@ func (t *Token) String() string {
 	return fmt.Sprintf("%s - %s - %v", t.typ, t.lexeme, t.literal)
 }
 
+type ScanError struct {
+	line    int
+	message string
+}
+
+func (se *ScanError) Error() string {
+	return fmt.Sprintf("ScanError [%d] Error: %s", se.line, se.message)
+}
+
 type Scanner struct {
 	source  []byte
 	tokens  []Token
 	start   int
 	current int
 	line    int
+	err     error
 }
 
 func newScanner(source []byte) *Scanner {
-	return &Scanner{source: source, start: 0, current: 0, line: 1}
+	return &Scanner{source: source, start: 0, current: 0, line: 1, err: nil}
 }
 
-func (s *Scanner) scan() []Token {
+func (s *Scanner) scan() ([]Token, error) {
 
 	for !s.isAtEnd() {
 		s.start = s.current
@@ -112,7 +123,7 @@ func (s *Scanner) scan() []Token {
 
 	s.tokens = append(s.tokens, Token{EOF, "EOF", struct{}{}, s.line})
 
-	return s.tokens
+	return s.tokens, s.err
 }
 
 func (s *Scanner) scanToken() {
@@ -191,7 +202,7 @@ func (s *Scanner) scanToken() {
 			break
 		}
 
-		report(s.line, "", fmt.Sprintf("Unexpected character %s", string(c)))
+		s.error(&ScanError{s.line, fmt.Sprintf("Unexpected character %s", string(c))})
 	}
 }
 
@@ -205,12 +216,12 @@ func (s *Scanner) identifier() {
 		s.advance()
 	}
 
-	str := s.source[s.start:s.current]
+	str := string(s.source[s.start:s.current])
 
 	if id, found := keywords[string(str)]; found {
-		s.addToken(id, struct{}{})
+		s.addToken(id, str)
 	} else {
-		s.addToken(IDENTIFIER, struct{}{})
+		s.addToken(IDENTIFIER, str)
 	}
 
 }
@@ -224,7 +235,7 @@ func (s *Scanner) string() {
 	}
 
 	if s.isAtEnd() {
-		report(s.line, "", "Unterminated string")
+		s.error(&ScanError{s.line, "Unterminated string"})
 		return
 	}
 
@@ -249,7 +260,7 @@ func (s *Scanner) number() {
 	num, err := strconv.ParseFloat(string(s.source[s.start:s.current]), 64)
 
 	if err != nil {
-		report(s.line, "", err.Error())
+		s.error(&ScanError{s.line, err.Error()})
 	}
 
 	s.addToken(NUMBER, num)
@@ -297,4 +308,9 @@ func (s *Scanner) match(ch rune) bool {
 
 func (s *Scanner) isAtEnd() bool {
 	return s.current >= len(s.source)
+}
+
+func (s *Scanner) error(err *ScanError) {
+	log.Print(err)
+	s.err = err
 }

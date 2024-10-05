@@ -9,13 +9,12 @@ type AstStringer struct {
 	str strings.Builder
 }
 
-func (as AstStringer) String(expr Expr) string {
+func (as AstStringer) String(stmts []Stmt) string {
 
-	if expr == nil {
-		return ""
+	for _, stmt := range stmts {
+		stmt.accept(&as)
 	}
 
-	expr.accept(&as)
 	return as.str.String()
 }
 
@@ -48,4 +47,36 @@ func (as *AstStringer) visitUnary(u *Unary) any {
 	u.right.accept(as)
 	as.str.WriteString(")")
 	return nil
+}
+
+func (as *AstStringer) visitVariable(va *Variable) any {
+	as.str.WriteString(va.name.lexeme)
+	return nil
+}
+
+func (as *AstStringer) visitAssignment(a *Assign) any {
+	as.str.WriteString(fmt.Sprintf("(= %s ", a.variable.lexeme))
+	a.value.accept(as)
+	as.str.WriteString(")")
+	return nil
+}
+
+func (as *AstStringer) visitPrintStmt(p *PrintStmt) {
+	as.str.WriteString("(print ")
+	p.val.accept(as)
+	as.str.WriteString(")")
+}
+
+func (as *AstStringer) visitExprStmt(se *ExprStmt) {
+	se.expr.accept(as)
+}
+
+func (as *AstStringer) visitVarStmt(vs *VarStmt) {
+	if vs.initializer != nil {
+		as.str.WriteString(fmt.Sprintf("(var %v ", vs.name.literal))
+		vs.initializer.accept(as)
+		as.str.WriteString(")")
+	} else {
+		as.str.WriteString(fmt.Sprintf("(var %v)", vs.name.literal))
+	}
 }

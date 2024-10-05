@@ -2,40 +2,52 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 )
 
-type Interpreter struct{}
+type Interpreter struct {
+	env    map[string]any
+	errors []error
+}
 
 type RuntimeError struct {
 	token Token
 	msg   string
 }
 
-func (re RuntimeError) Error() string {
-	return re.msg
+func (re *RuntimeError) Error() string {
+	return fmt.Sprintf("RuntimeError [%d][%s] Error: %s", re.token.line, re.token.typ, re.msg)
 }
 
 func newInterpreter() *Interpreter {
-	return &Interpreter{}
+	return &Interpreter{env: make(map[string]any)}
 }
 
-func (i *Interpreter) evaluate(e Expr) any {
+func (i *Interpreter) interpret(stmts []Stmt) []error {
 	defer i.recover()
-	return e.accept(i)
+
+	i.errors = []error{}
+
+	for _, stmt := range stmts {
+		stmt.accept(i)
+	}
+
+	return i.errors
 }
 
 func (i *Interpreter) recover() {
 	if err := recover(); err != nil {
-		pe, ok := err.(RuntimeError)
+		_, ok := err.(*RuntimeError)
 
 		if !ok {
 			panic(err)
 		}
-
-		reportRuntimeError(pe.token, pe.msg)
-		hadRuntimeError = true
 	}
+}
+
+func (i *Interpreter) evaluate(e Expr) any {
+	return e.accept(i)
 }
 
 func (i *Interpreter) visitBinary(b *Binary) any {
@@ -44,25 +56,25 @@ func (i *Interpreter) visitBinary(b *Binary) any {
 
 	switch b.op.typ {
 	case MINUS:
-		checkIfFloats(b.op, left, right)
+		i.checkIfFloats(b.op, left, right)
 		return left.(float64) - right.(float64)
 	case SLASH:
-		checkIfFloats(b.op, left, right)
+		i.checkIfFloats(b.op, left, right)
 		return left.(float64) / right.(float64)
 	case STAR:
-		checkIfFloats(b.op, left, right)
+		i.checkIfFloats(b.op, left, right)
 		return left.(float64) * right.(float64)
 	case GREATER:
-		checkIfFloats(b.op, left, right)
+		i.checkIfFloats(b.op, left, right)
 		return left.(float64) > right.(float64)
 	case LESS:
-		checkIfFloats(b.op, left, right)
+		i.checkIfFloats(b.op, left, right)
 		return left.(float64) < right.(float64)
 	case GREATER_EQUAL:
-		checkIfFloats(b.op, left, right)
+		i.checkIfFloats(b.op, left, right)
 		return left.(float64) >= right.(float64)
 	case LESS_EQUAL:
-		checkIfFloats(b.op, left, right)
+		i.checkIfFloats(b.op, left, right)
 		return left.(float64) <= right.(float64)
 	case BANG_EQUAL:
 		return !reflect.DeepEqual(left, right)
@@ -78,7 +90,7 @@ func (i *Interpreter) visitBinary(b *Binary) any {
 		}
 	}
 
-	panic(RuntimeError{b.op, fmt.Sprintf("Operands must be numbers or strings: %v %s %v", left, b.op.lexeme, right)})
+	i.panic(&RuntimeError{b.op, fmt.Sprintf("Operands must be numbers or strings: %v %s %v", left, b.op.lexeme, right)})
 
 	return nil
 }
@@ -96,7 +108,7 @@ func (i *Interpreter) visitUnary(u *Unary) any {
 
 	switch u.op.typ {
 	case MINUS:
-		checkIfFloat(u.op, val)
+		i.checkIfFloat(u.op, val)
 		return -val.(float64)
 	case BANG:
 		return !isTruthy(val)
@@ -105,20 +117,67 @@ func (i *Interpreter) visitUnary(u *Unary) any {
 	return nil
 }
 
-func checkIfFloat(op Token, val any) {
+func (i *Interpreter) visitVariable(v *Variable) any {
+	if found, ok := i.env[v.name.lexeme]; ok {
+		return found
+	}
+
+	i.panic(&RuntimeError{v.name, fmt.Sprintf("Undefined variable '%s'.", v.name.lexeme)})
+
+	return nil
+}
+
+func (i *Interpreter) visitAssignment(a *Assign) any {
+	if _, ok := i.env[a.variable.lexeme]; ok {
+		val := i.evaluate(a.value)
+		i.env[a.variable.lexeme] = val
+		return val
+	}
+
+	i.panic(&RuntimeError{a.variable, fmt.Sprintf("Undefined variable '%s'.", a.variable.lexeme)})
+
+	return nil
+}
+
+func (i *Interpreter) visitPrintStmt(p *PrintStmt) {
+	fmt.Printf("%v\n", i.evaluate(p.val))
+}
+
+func (i *Interpreter) visitExprStmt(se *ExprStmt) {
+	i.evaluate(se.expr)
+}
+
+func (i *Interpreter) visitVarStmt(v *VarStmt) {
+
+	var val any = nil
+
+	if v.initializer != nil {
+		val = i.evaluate(v.initializer)
+	}
+
+	i.env[v.name.lexeme] = val
+}
+
+func (i *Interpreter) panic(re *RuntimeError) {
+	i.errors = append(i.errors, re)
+	log.Println(re)
+	panic(re)
+}
+
+func (i *Interpreter) checkIfFloat(op Token, val any) {
 	if _, ok := val.(float64); ok {
 		return
 	}
 
-	panic(RuntimeError{op, "value must ne a number."})
+	i.panic(&RuntimeError{op, "value must be a number."})
 }
 
-func checkIfFloats(op Token, a any, b any) {
+func (i *Interpreter) checkIfFloats(op Token, a any, b any) {
 	if isFloats(a, b) {
 		return
 	}
 
-	panic(RuntimeError{op, fmt.Sprintf("Operands must be numbers: %v %s %v", a, op.lexeme, b)})
+	i.panic(&RuntimeError{op, fmt.Sprintf("Operands must be numbers: %v %s %v", a, op.lexeme, b)})
 }
 
 func isFloats(a any, b any) bool {

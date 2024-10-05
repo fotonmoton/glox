@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 )
 
 type Parser struct {
 	tokens  []Token
 	current int
+	errors  []error
 }
 
 type ParseError struct {
@@ -14,8 +16,8 @@ type ParseError struct {
 	message string
 }
 
-func (pe ParseError) Error() string {
-	return fmt.Sprintf("%s: %s", pe.token.lexeme, pe.message)
+func (pe *ParseError) Error() string {
+	return fmt.Sprintf("ParseError [%d][%s]: %s", pe.token.line, pe.token.typ, pe.message)
 }
 
 func newParser(tokens []Token) *Parser {
@@ -25,21 +27,88 @@ func newParser(tokens []Token) *Parser {
 	}
 }
 
-func (p *Parser) parse() Expr {
+// program -> declaration* EOF
+func (p *Parser) parse() ([]Stmt, []error) {
 	defer p.recover()
-	return p.expression()
-}
 
-func (p *Parser) recover() {
-	if err := recover(); err != nil {
-		pe := err.(ParseError)
-		printError(pe.token, pe.message)
+	stmts := []Stmt{}
+
+	for !p.isAtEnd() {
+
+		if stmt := p.declaration(); stmt != nil {
+			stmts = append(stmts, stmt)
+		}
 	}
+
+	return stmts, p.errors
 }
 
-// expression -> equality
+// declaration -> varDecl | statement
+func (p *Parser) declaration() Stmt {
+	defer p.synchronize()
+	if p.match(VAR) {
+		return p.varDecl()
+	}
+	return p.statement()
+}
+
+// varDecl -> "var" IDENTIFIER ("=" expression)? ";"
+func (p *Parser) varDecl() Stmt {
+	name := p.consume(IDENTIFIER, "expect identifier for variable")
+
+	var initializer Expr = nil
+	if p.match(EQUAL) {
+		initializer = p.expression()
+	}
+
+	p.consume(SEMICOLON, "Expect ';' after expression.")
+
+	return &VarStmt{name, initializer}
+}
+
+// statement -> exprStmt | printStmt
+func (p *Parser) statement() Stmt {
+	if p.match(PRINT) {
+		return p.printStmt()
+	}
+	return p.exprStmt()
+}
+
+// exprStmt -> expression ";"
+func (p *Parser) exprStmt() Stmt {
+	expr := p.expression()
+	p.consume(SEMICOLON, "Expect ';' after expression.")
+	return &ExprStmt{expr}
+}
+
+// printStmt -> "print" expression ";"
+func (p *Parser) printStmt() Stmt {
+	expr := p.expression()
+	p.consume(SEMICOLON, "Expect ';' after expression.")
+	return &PrintStmt{expr}
+}
+
+// expression -> assignment
 func (p *Parser) expression() Expr {
-	return p.equality()
+	return p.assignment()
+}
+
+// assignment -> IDENTIFIER "=" assignment | equality
+func (p *Parser) assignment() Expr {
+	expr := p.equality()
+
+	if p.match(EQUAL) {
+		eq := p.previous()
+		val := p.assignment()
+
+		if variable, ok := expr.(*Variable); ok {
+			return &Assign{variable.name, val}
+		}
+
+		p.panic(&ParseError{eq, "Invalid assignment target."})
+	}
+
+	return expr
 }
 
 // equality -> comparison ( ( "==" | "!=" ) comparison )*
@@ -105,7 +174,7 @@ func (p *Parser) unary() Expr {
 	return p.primary()
 }
 
-// primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
+// primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER
 func (p *Parser) primary() Expr {
 	switch {
 	case p.match(FALSE):
@@ -120,13 +189,17 @@ func (p *Parser) primary() Expr {
 		return &Literal{p.previous().literal}
 	}
 
+	if p.match(IDENTIFIER) {
+		return &Variable{p.previous()}
+	}
+
 	if p.match(LEFT_PAREN) {
 		expr := p.expression()
 		p.consume(RIGHT_PAREN, "Expect ')' after expression")
 		return &Grouping{expr}
 	}
 
-	panic(ParseError{p.peek(), "Expect expression"})
+	p.panic(&ParseError{p.peek(), "Expect expression"})
 
 	return nil
 }
@@ -176,12 +249,20 @@ func (p *Parser) consume(typ TokenType, mes string) Token {
 		return p.advance()
 	}
 
-	panic(ParseError{p.peek(), mes})
+	p.panic(&ParseError{p.peek(), mes})
 
 	return Token{}
 }
 
 func (p *Parser) synchronize() {
+	err := recover()
+
+	pe := p.isParseError(err)
+
+	if pe == nil {
+		return
+	}
+
 	p.advance()
 
 	for !p.isAtEnd() {
@@ -196,4 +277,29 @@ func (p *Parser) synchronize() {
 
 		p.advance()
 	}
+
+}
+
+func (p *Parser) recover() {
+	p.isParseError(recover())
+}
+
+func (p *Parser) panic(pe *ParseError) {
+	p.errors = append(p.errors, pe)
+	log.Println(pe)
+	panic(pe)
+}
+
+func (p *Parser) isParseError(err any) *ParseError {
+	if err == nil {
+		return nil
+	}
+
+	pe, ok := err.(*ParseError)
+
+	if !ok {
+		panic(err)
+	}
+
+	return pe
 }

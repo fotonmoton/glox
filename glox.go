@@ -2,83 +2,73 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 )
 
+type Glox struct {
+	Interpreter *Interpreter
+}
+
 func main() {
+	glox := &Glox{newInterpreter()}
 	switch len(os.Args) {
 	case 1:
-		runPrompt()
+		glox.runPrompt()
 	case 2:
-		runFile(os.Args[1])
+		glox.runFile(os.Args[1])
 	default:
 		println("Usage: glox [file]")
 		os.Exit(1)
 	}
 }
 
-func runPrompt() {
+func (gl *Glox) runPrompt() {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Split(bufio.ScanLines)
 
 	for {
 		print("> ")
-		scanner.Scan()
-		line := scanner.Text()
-		if len(line) == 0 {
+		if !scanner.Scan() {
 			break
 		}
-		run([]byte(scanner.Text()))
-		hadError = false
-		hadRuntimeError = false
+		gl.run(scanner.Bytes(), true)
 	}
 }
 
-func runFile(path string) {
+func (gl *Glox) runFile(path string) {
 	file, err := os.ReadFile(path)
 
-	try(err)
-
-	run(file)
-
-	switch {
-	case hadError:
-		os.Exit(65)
-	case hadRuntimeError:
-		os.Exit(70)
-	default:
-		os.Exit(0)
-	}
-}
-
-func run(source []byte) {
-	tokens := newScanner(source).scan()
-
-	if hadError {
-		return
-	}
-
-	ast := newParser(tokens).parse()
-
-	if hadError {
-		return
-	}
-
-	println(AstStringer{}.String(ast))
-
-	res := newInterpreter().evaluate(ast)
-
-	if hadRuntimeError {
-		return
-	}
-
-	fmt.Printf("%v\n", res)
-}
-
-func try(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	runErrors := gl.run(file, false)
+
+	if len(runErrors) != 0 {
+		for _, e := range runErrors {
+			log.Print(e)
+		}
+
+		os.Exit(1)
+	}
+
+}
+
+func (gl *Glox) run(source []byte, interactive bool) []error {
+	tokens, err := newScanner(source).scan()
+
+	if err != nil {
+		return []error{err}
+	}
+
+	stmts, parseErrs := newParser(tokens).parse()
+
+	if len(parseErrs) != 0 && !interactive {
+		return parseErrs
+	}
+
+	println(AstStringer{}.String(stmts))
+
+	return gl.Interpreter.interpret(stmts)
 }
