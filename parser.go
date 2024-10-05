@@ -66,11 +66,16 @@ func (p *Parser) varDecl() Stmt {
 	return &VarStmt{name, initializer}
 }
 
-// statement -> exprStmt | printStmt
+// statement -> exprStmt | printStmt | block
 func (p *Parser) statement() Stmt {
 	if p.match(PRINT) {
 		return p.printStmt()
 	}
+
+	if p.match(LEFT_BRACE) {
+		return p.block()
+	}
+
 	return p.exprStmt()
 }
 
@@ -86,6 +91,19 @@ func (p *Parser) printStmt() Stmt {
 	expr := p.expression()
 	p.consume(SEMICOLON, "Expect ';' after expression.")
 	return &PrintStmt{expr}
+}
+
+// block -> "{" statement* "}"
+func (p *Parser) block() Stmt {
+
+	stmts := []Stmt{}
+	for !p.check(RIGHT_BRACE) {
+		stmts = append(stmts, p.declaration())
+	}
+
+	p.consume(RIGHT_BRACE, "Unclosed block: Expected '}'.")
+
+	return &BlockStmt{stmts}
 }
 
 // expression -> assignment
@@ -199,7 +217,7 @@ func (p *Parser) primary() Expr {
 		return &Grouping{expr}
 	}
 
-	p.panic(&ParseError{p.peek(), "Expect expression"})
+	// p.panic(&ParseError{p.peek(), "Expect expression"})
 
 	return nil
 }

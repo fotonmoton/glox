@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 )
@@ -32,7 +33,7 @@ func (gl *Glox) runPrompt() {
 		if !scanner.Scan() {
 			break
 		}
-		gl.run(scanner.Bytes(), true)
+		gl.run(scanner.Bytes())
 	}
 }
 
@@ -43,32 +44,15 @@ func (gl *Glox) runFile(path string) {
 		log.Fatal(err)
 	}
 
-	runErrors := gl.run(file, false)
-
-	if len(runErrors) != 0 {
-		for _, e := range runErrors {
-			log.Print(e)
-		}
-
-		os.Exit(1)
-	}
-
+	gl.run(file)
 }
 
-func (gl *Glox) run(source []byte, interactive bool) []error {
-	tokens, err := newScanner(source).scan()
+func (gl *Glox) run(source []byte) {
+	tokens, _ := newScanner(source).scan()
 
-	if err != nil {
-		return []error{err}
-	}
+	stmts, _ := newParser(tokens).parse()
 
-	stmts, parseErrs := newParser(tokens).parse()
+	fmt.Println(AstStringer{stmts: stmts})
 
-	if len(parseErrs) != 0 && !interactive {
-		return parseErrs
-	}
-
-	println(AstStringer{}.String(stmts))
-
-	return gl.Interpreter.interpret(stmts)
+	gl.Interpreter.interpret(stmts)
 }

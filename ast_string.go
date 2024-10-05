@@ -6,12 +6,13 @@ import (
 )
 
 type AstStringer struct {
-	str strings.Builder
+	str   strings.Builder
+	stmts []Stmt
 }
 
-func (as AstStringer) String(stmts []Stmt) string {
+func (as AstStringer) String() string {
 
-	for _, stmt := range stmts {
+	for _, stmt := range as.stmts {
 		stmt.accept(&as)
 	}
 
@@ -79,4 +80,15 @@ func (as *AstStringer) visitVarStmt(vs *VarStmt) {
 	} else {
 		as.str.WriteString(fmt.Sprintf("(var %v)", vs.name.literal))
 	}
+}
+
+func (as *AstStringer) visitBlockStmt(b *BlockStmt) {
+	as.str.WriteString("(block ")
+
+	for _, stmt := range b.stmts {
+		stmt.accept(as)
+	}
+
+	as.str.WriteString(")")
+
 }

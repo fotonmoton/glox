@@ -7,7 +7,7 @@ import (
 )
 
 type Interpreter struct {
-	env    map[string]any
+	env    *Environment
 	errors []error
 }
 
@@ -21,7 +21,7 @@ func (re *RuntimeError) Error() string {
 }
 
 func newInterpreter() *Interpreter {
-	return &Interpreter{env: make(map[string]any)}
+	return &Interpreter{env: newEnvironment(nil)}
 }
 
 func (i *Interpreter) interpret(stmts []Stmt) []error {
@@ -118,25 +118,30 @@ func (i *Interpreter) visitUnary(u *Unary) any {
 }
 
 func (i *Interpreter) visitVariable(v *Variable) any {
-	if found, ok := i.env[v.name.lexeme]; ok {
-		return found
+
+	val := i.env.get(v.name.lexeme)
+
+	if val == nil {
+		i.panic(&RuntimeError{v.name, fmt.Sprintf("Can't evaluate: Undefined variable '%s'.", v.name.lexeme)})
+		return nil
 	}
 
-	i.panic(&RuntimeError{v.name, fmt.Sprintf("Undefined variable '%s'.", v.name.lexeme)})
-
-	return nil
+	return val
 }
 
 func (i *Interpreter) visitAssignment(a *Assign) any {
-	if _, ok := i.env[a.variable.lexeme]; ok {
-		val := i.evaluate(a.value)
-		i.env[a.variable.lexeme] = val
-		return val
+
+	if !i.env.exists(a.variable.lexeme) {
+		i.panic(&RuntimeError{a.variable, fmt.Sprintf("Can't assign: undefined variable '%s'.", a.variable.lexeme)})
+
+		return nil
 	}
 
-	i.panic(&RuntimeError{a.variable, fmt.Sprintf("Undefined variable '%s'.", a.variable.lexeme)})
+	val := i.evaluate(a.value)
 
-	return nil
+	i.env.set(a.variable.lexeme, val)
+
+	return val
 }
 
 func (i *Interpreter) visitPrintStmt(p *PrintStmt) {
@@ -155,7 +160,19 @@ func (i *Interpreter) visitVarStmt(v *VarStmt) {
 		val = i.evaluate(v.initializer)
 	}
 
-	i.env[v.name.lexeme] = val
+	i.env.set(v.name.lexeme, val)
+}
+
+func (i *Interpreter) visitBlockStmt(b *BlockStmt) {
+
+	parentEnv := i.env
+	i.env = newEnvironment(parentEnv)
+
+	for _, stmt := range b.stmts {
+		stmt.accept(i)
+	}
+
+	i.env = parentEnv
 }
 
 func (i *Interpreter) panic(re *RuntimeError) {
