@@ -44,6 +44,7 @@ const (
 	// keywords
 	AND
 	CLASS
+	ENV
 	ELSE
 	FALSE
 	FUN
@@ -79,6 +80,7 @@ var keywords = map[string]TokenType{
 	"true":   TRUE,
 	"var":    VAR,
 	"while":  WHILE,
+	"env":    ENV,
 }
 
 type Token struct {

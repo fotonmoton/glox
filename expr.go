@@ -6,7 +6,9 @@ type ExprVisitor interface {
 	visitLiteral(l *Literal) any
 	visitGrouping(g *Grouping) any
 	visitVariable(v *Variable) any
+	visitLogicalOr(l *LogicalOr) any
 	visitAssignment(a *Assign) any
+	visitLogicalAnd(l *LogicalAnd) any
 }
 
 type Expr interface {
@@ -42,12 +44,26 @@ type Assign struct {
 	value    Expr
 }
 
-func (u *Unary) expr()    {}
-func (b *Binary) expr()   {}
-func (l *Literal) expr()  {}
-func (g *Grouping) expr() {}
-func (v *Variable) expr() {}
-func (a *Assign) expr()   {}
+type LogicalOr struct {
+	left  Expr
+	or    Token
+	right Expr
+}
+
+type LogicalAnd struct {
+	left  Expr
+	and   Token
+	right Expr
+}
+
+func (u *Unary) expr()      {}
+func (a *Assign) expr()     {}
+func (b *Binary) expr()     {}
+func (l *Literal) expr()    {}
+func (g *Grouping) expr()   {}
+func (v *Variable) expr()   {}
+func (l *LogicalOr) expr()  {}
+func (l *LogicalAnd) expr() {}
 
 func (u *Unary) accept(v ExprVisitor) any {
 	return v.visitUnary(u)
@@ -71,4 +87,12 @@ func (va *Variable) accept(v ExprVisitor) any {
 
 func (a *Assign) accept(v ExprVisitor) any {
 	return v.visitAssignment(a)
+}
+
+func (l *LogicalOr) accept(v ExprVisitor) any {
+	return v.visitLogicalOr(l)
+}
+
+func (l *LogicalAnd) accept(v ExprVisitor) any {
+	return v.visitLogicalAnd(l)
 }

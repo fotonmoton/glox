@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"slices"
 )
 
 type Interpreter struct {
@@ -119,13 +120,11 @@ func (i *Interpreter) visitUnary(u *Unary) any {
 
 func (i *Interpreter) visitVariable(v *Variable) any {
 
-	val := i.env.get(v.name.lexeme)
-
-	if val == nil {
-		i.panic(&RuntimeError{v.name, fmt.Sprintf("Can't evaluate: Undefined variable '%s'.", v.name.lexeme)})
-		return nil
+	if !i.env.exists(v.name.lexeme) {
+		i.panic(&RuntimeError{v.name, fmt.Sprintf("Can't assign: undefined variable '%s'.", v.name.lexeme)})
 	}
 
+	val := i.env.get(v.name.lexeme)
 	return val
 }
 
@@ -133,8 +132,6 @@ func (i *Interpreter) visitAssignment(a *Assign) any {
 
 	if !i.env.exists(a.variable.lexeme) {
 		i.panic(&RuntimeError{a.variable, fmt.Sprintf("Can't assign: undefined variable '%s'.", a.variable.lexeme)})
-
-		return nil
 	}
 
 	val := i.evaluate(a.value)
@@ -142,6 +139,14 @@ func (i *Interpreter) visitAssignment(a *Assign) any {
 	i.env.set(a.variable.lexeme, val)
 
 	return val
+}
+
+func (i *Interpreter) visitLogicalOr(lo *LogicalOr) any {
+	return isTruthy(i.evaluate(lo.left)) || isTruthy(i.evaluate(lo.right))
+}
+
+func (i *Interpreter) visitLogicalAnd(la *LogicalAnd) any {
+	return isTruthy(i.evaluate(la.left)) && isTruthy(i.evaluate(la.right))
 }
 
 func (i *Interpreter) visitPrintStmt(p *PrintStmt) {
@@ -175,6 +180,33 @@ func (i *Interpreter) visitBlockStmt(b *BlockStmt) {
 	i.env = parentEnv
 }
 
+func (i *Interpreter) visitIfStmt(iff *IfStmt) {
+	if isTruthy(i.evaluate(iff.expr)) {
+		iff.then.accept(i)
+
+	} else if iff.or != nil {
+		iff.or.accept(i)
+	}
+}
+
+func (i *Interpreter) visitEnvStmt(e *EnvStmt) {
+
+	walker := i.env
+
+	flatten := []*Environment{}
+
+	for walker != nil {
+		flatten = slices.Insert(flatten, 0, walker)
+		walker = walker.parent
+	}
+
+	for ident, e := range flatten {
+		fmt.Printf("%*s", ident, "")
+		fmt.Printf("%+v\n", *e)
+	}
+
+}
+
 func (i *Interpreter) panic(re *RuntimeError) {
 	i.errors = append(i.errors, re)
 	log.Println(re)
@@ -198,6 +230,11 @@ func (i *Interpreter) checkIfFloats(op Token, a any, b any) {
 }
 
 func isFloats(a any, b any) bool {
+
+	if a == nil || b == nil {
+		return false
+	}
+
 	ltype := reflect.TypeOf(a)
 	rtype := reflect.TypeOf(b)
 
@@ -205,6 +242,11 @@ func isFloats(a any, b any) bool {
 }
 
 func isStrings(a any, b any) bool {
+
+	if a == nil || b == nil {
+		return false
+	}
+
 	ltype := reflect.TypeOf(a)
 	rtype := reflect.TypeOf(b)
 

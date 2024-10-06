@@ -62,6 +62,24 @@ func (as *AstStringer) visitAssignment(a *Assign) any {
 	return nil
 }
 
+func (as *AstStringer) visitLogicalOr(l *LogicalOr) any {
+	as.str.WriteString("(or ")
+	l.left.accept(as)
+	as.str.WriteString(" ")
+	l.right.accept(as)
+	as.str.WriteString(")")
+	return nil
+}
+
+func (as *AstStringer) visitLogicalAnd(l *LogicalAnd) any {
+	as.str.WriteString("(and ")
+	l.left.accept(as)
+	as.str.WriteString(" ")
+	l.right.accept(as)
+	as.str.WriteString(")")
+	return nil
+}
+
 func (as *AstStringer) visitPrintStmt(p *PrintStmt) {
 	as.str.WriteString("(print ")
 	p.val.accept(as)
@@ -91,4 +109,20 @@ func (as *AstStringer) visitBlockStmt(b *BlockStmt) {
 
 	as.str.WriteString(")")
 
+}
+
+func (as *AstStringer) visitIfStmt(i *IfStmt) {
+	as.str.WriteString("(if ")
+	i.expr.accept(as)
+	as.str.WriteString(" ")
+	i.then.accept(as)
+	if i.or != nil {
+		as.str.WriteString(" ")
+		i.or.accept(as)
+	}
+	as.str.WriteString(")")
+}
+
+func (as *AstStringer) visitEnvStmt(e *EnvStmt) {
+	as.str.WriteString("(env)")
 }

@@ -1,10 +1,12 @@
 package main
 
 type StmtVisitor interface {
+	visitIfStmt(i *IfStmt)
 	visitVarStmt(v *VarStmt)
 	visitExprStmt(es *ExprStmt)
 	visitPrintStmt(p *PrintStmt)
 	visitBlockStmt(b *BlockStmt)
+	visitEnvStmt(e *EnvStmt)
 }
 
 type Stmt interface {
@@ -29,10 +31,21 @@ type BlockStmt struct {
 	stmts []Stmt
 }
 
+type EnvStmt struct{}
+
+type IfStmt struct {
+	name Token
+	expr Expr
+	then Stmt
+	or   Stmt
+}
+
+func (i *IfStmt) stmt()    {}
 func (vs *VarStmt) stmt()  {}
 func (es *ExprStmt) stmt() {}
 func (p *PrintStmt) stmt() {}
 func (b *BlockStmt) stmt() {}
+func (e *EnvStmt) stmt()   {}
 
 func (p *PrintStmt) accept(v StmtVisitor) {
 	v.visitPrintStmt(p)
@@ -48,4 +61,12 @@ func (vs *VarStmt) accept(v StmtVisitor) {
 
 func (b *BlockStmt) accept(v StmtVisitor) {
 	v.visitBlockStmt(b)
+}
+
+func (i *IfStmt) accept(v StmtVisitor) {
+	v.visitIfStmt(i)
+}
+
+func (e *EnvStmt) accept(v StmtVisitor) {
+	v.visitEnvStmt(e)
 }

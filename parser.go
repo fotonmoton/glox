@@ -66,7 +66,7 @@ func (p *Parser) varDecl() Stmt {
 	return &VarStmt{name, initializer}
 }
 
-// statement -> exprStmt | printStmt | block
+// statement -> exprStmt | printStmt | block | ifStmt | env
 func (p *Parser) statement() Stmt {
 	if p.match(PRINT) {
 		return p.printStmt()
@@ -76,6 +76,14 @@ func (p *Parser) statement() Stmt {
 		return p.block()
 	}
 
+	if p.match(IF) {
+		return p.ifStmt()
+	}
+
+	if p.match(ENV) {
+		return p.envStmt()
+	}
+
 	return p.exprStmt()
 }
 
@@ -83,12 +91,22 @@ func (p *Parser) statement() Stmt {
 func (p *Parser) exprStmt() Stmt {
 	expr := p.expression()
 	p.consume(SEMICOLON, "Expect ';' after expression.")
+
+	if expr == nil {
+		return nil
+	}
+
 	return &ExprStmt{expr}
 }
 
 // printStmt -> "print" expression ";"
 func (p *Parser) printStmt() Stmt {
 	expr := p.expression()
+
+	if expr == nil {
+		p.panic(&ParseError{p.previous(), "Expect expression after 'print'"})
+	}
+
 	p.consume(SEMICOLON, "Expect ';' after expression.")
 	return &PrintStmt{expr}
 }
@@ -97,7 +115,7 @@ func (p *Parser) printStmt() Stmt {
 func (p *Parser) block() Stmt {
 
 	stmts := []Stmt{}
-	for !p.check(RIGHT_BRACE) {
+	for !p.check(RIGHT_BRACE) && !p.isAtEnd() {
 		stmts = append(stmts, p.declaration())
 	}
 
@@ -106,14 +124,36 @@ func (p *Parser) block() Stmt {
 	return &BlockStmt{stmts}
 }
 
+// if -> "if" "(" expression ")" statement ("else" statement)?
+func (p *Parser) ifStmt() Stmt {
+	name := p.previous()
+	p.consume(LEFT_PAREN, "Expect '(' after 'if'.")
+	expr := p.expression()
+	p.consume(RIGHT_PAREN, "Expect ')' after 'if' condition.")
+	then := p.statement()
+
+	var or Stmt = nil
+	if p.match(ELSE) {
+		or = p.statement()
+	}
+
+	return &IfStmt{name, expr, then, or}
+}
+
+// env -> "env" ";"
+func (p *Parser) envStmt() Stmt {
+	p.consume(SEMICOLON, "Expect ';' after 'env'.")
+	return &EnvStmt{}
+}
+
 // expression -> assignment
 func (p *Parser) expression() Expr {
 	return p.assignment()
 }
 
-// assignment -> IDENTIFIER "=" assignment | equality
+// assignment -> IDENTIFIER "=" assignment | logicalOr
 func (p *Parser) assignment() Expr {
-	expr := p.equality()
+	expr := p.logicalOr()
 
 	if p.match(EQUAL) {
 		eq := p.previous()
@@ -127,6 +167,34 @@ func (p *Parser) assignment() Expr {
 	}
 
 	return expr
+}
+
+// logicalOr -> logicalAnd ( "or" logicalAnd )*
+func (p *Parser) logicalOr() Expr {
+	left := p.logicalAnd()
+
+	for p.match(OR) {
+		or := p.previous()
+		right := p.logicalAnd()
+
+		left = &LogicalOr{left, or, right}
+	}
+
+	return left
+}
+
+// logicalAnd -> equality ( "and" equality )*
+func (p *Parser) logicalAnd() Expr {
+	left := p.equality()
+
+	for p.match(AND) {
+		or := p.previous()
+		right := p.equality()
+
+		left = &LogicalAnd{left, or, right}
+	}
+
+	return left
 }
 
 // equality -> comparison ( ( "==" | "!=" ) comparison )*
@@ -289,7 +357,7 @@ func (p *Parser) synchronize() {
 		}
 
 		switch p.peek().typ {
-		case CLASS, FOR, FUN, IF, PRINT, RETURN, VAR, WHILE:
+		case CLASS, FOR, FUN, IF, PRINT, RETURN, VAR, WHILE, ENV:
 			return
 		}
 

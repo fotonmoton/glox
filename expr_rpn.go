@@ -54,3 +54,17 @@ func (as *ExprToRPN) visitAssignment(a *Assign) any {
 	as.str.WriteString(fmt.Sprintf("%v %s =", a.value, a.variable.lexeme))
 	return nil
 }
+
+func (as *ExprToRPN) visitLogicalOr(lo *LogicalOr) any {
+	lo.left.accept(as)
+	lo.right.accept(as)
+	as.str.WriteString(" or")
+	return nil
+}
+
+func (as *ExprToRPN) visitLogicalAnd(la *LogicalAnd) any {
+	la.left.accept(as)
+	la.right.accept(as)
+	as.str.WriteString(" and")
+	return nil
+}
