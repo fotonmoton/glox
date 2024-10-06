@@ -141,12 +141,18 @@ func (i *Interpreter) visitAssignment(a *Assign) any {
 	return val
 }
 
-func (i *Interpreter) visitLogicalOr(lo *LogicalOr) any {
-	return isTruthy(i.evaluate(lo.left)) || isTruthy(i.evaluate(lo.right))
-}
+func (i *Interpreter) visitLogical(lo *Logical) any {
 
-func (i *Interpreter) visitLogicalAnd(la *LogicalAnd) any {
-	return isTruthy(i.evaluate(la.left)) && isTruthy(i.evaluate(la.right))
+	left := i.evaluate(lo.left)
+
+	shortOr := lo.operator.typ == OR && isTruthy(left)
+	shortAnd := lo.operator.typ == AND && !isTruthy(left)
+
+	if shortOr || shortAnd {
+		return left
+	}
+
+	return i.evaluate(lo.right)
 }
 
 func (i *Interpreter) visitPrintStmt(p *PrintStmt) {

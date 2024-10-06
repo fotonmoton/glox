@@ -1,0 +1,10 @@
+var a = 1;
+var b = 2;
+
+if (a == b or b - a > 0) print a + b;
+
+if ( 1 and 2 ) print "and";
+
+if ( 1 and 2  and 3 and false ) else print "else";
+
+print nil or "yes";

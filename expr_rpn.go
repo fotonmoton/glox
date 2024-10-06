@@ -55,16 +55,9 @@ func (as *ExprToRPN) visitAssignment(a *Assign) any {
 	return nil
 }
 
-func (as *ExprToRPN) visitLogicalOr(lo *LogicalOr) any {
+func (as *ExprToRPN) visitLogical(lo *Logical) any {
 	lo.left.accept(as)
 	lo.right.accept(as)
 	as.str.WriteString(" or")
-	return nil
-}
-
-func (as *ExprToRPN) visitLogicalAnd(la *LogicalAnd) any {
-	la.left.accept(as)
-	la.right.accept(as)
-	as.str.WriteString(" and")
 	return nil
 }

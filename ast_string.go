@@ -62,17 +62,8 @@ func (as *AstStringer) visitAssignment(a *Assign) any {
 	return nil
 }
 
-func (as *AstStringer) visitLogicalOr(l *LogicalOr) any {
-	as.str.WriteString("(or ")
-	l.left.accept(as)
-	as.str.WriteString(" ")
-	l.right.accept(as)
-	as.str.WriteString(")")
-	return nil
-}
-
-func (as *AstStringer) visitLogicalAnd(l *LogicalAnd) any {
-	as.str.WriteString("(and ")
+func (as *AstStringer) visitLogical(l *Logical) any {
+	as.str.WriteString(fmt.Sprintf("(%s ", l.operator.lexeme))
 	l.left.accept(as)
 	as.str.WriteString(" ")
 	l.right.accept(as)

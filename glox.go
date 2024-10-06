@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 )
@@ -52,7 +51,7 @@ func (gl *Glox) run(source []byte) {
 
 	stmts, _ := newParser(tokens).parse()
 
-	fmt.Println(AstStringer{stmts: stmts})
+	// fmt.Println(AstStringer{stmts: stmts})
 
 	gl.Interpreter.interpret(stmts)
 }

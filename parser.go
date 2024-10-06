@@ -151,9 +151,9 @@ func (p *Parser) expression() Expr {
 	return p.assignment()
 }
 
-// assignment -> IDENTIFIER "=" assignment | logicalOr
+// assignment -> IDENTIFIER "=" assignment | or
 func (p *Parser) assignment() Expr {
-	expr := p.logicalOr()
+	expr := p.or()
 
 	if p.match(EQUAL) {
 		eq := p.previous()
@@ -169,29 +169,28 @@ func (p *Parser) assignment() Expr {
 	return expr
 }
 
-// logicalOr -> logicalAnd ( "or" logicalAnd )*
-func (p *Parser) logicalOr() Expr {
-	left := p.logicalAnd()
+// or -> and ( "or" and )*
+func (p *Parser) or() Expr {
+	left := p.and()
 
 	for p.match(OR) {
 		or := p.previous()
-		right := p.logicalAnd()
-
-		left = &LogicalOr{left, or, right}
+		right := p.and()
+		left = &Logical{left, or, right}
 	}
 
 	return left
 }
 
-// logicalAnd -> equality ( "and" equality )*
-func (p *Parser) logicalAnd() Expr {
+// and -> equality ( "and" equality )*
+func (p *Parser) and() Expr {
 	left := p.equality()
 
 	for p.match(AND) {
 		or := p.previous()
 		right := p.equality()
 
-		left = &LogicalAnd{left, or, right}
+		left = &Logical{left, or, right}
 	}
 
 	return left
