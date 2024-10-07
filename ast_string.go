@@ -117,3 +117,11 @@ func (as *AstStringer) visitIfStmt(i *IfStmt) {
 func (as *AstStringer) visitEnvStmt(e *EnvStmt) {
 	as.str.WriteString("(env)")
 }
+
+func (as *AstStringer) visitWhileStmt(w *WhileStmt) {
+	as.str.WriteString("(while ")
+	w.cond.accept(as)
+	as.str.WriteString(" ")
+	w.body.accept(as)
+	as.str.WriteString(")")
+}

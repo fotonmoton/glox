@@ -7,6 +7,7 @@ type StmtVisitor interface {
 	visitPrintStmt(p *PrintStmt)
 	visitBlockStmt(b *BlockStmt)
 	visitEnvStmt(e *EnvStmt)
+	visitWhileStmt(w *WhileStmt)
 }
 
 type Stmt interface {
@@ -40,12 +41,18 @@ type IfStmt struct {
 	or   Stmt
 }
 
+type WhileStmt struct {
+	cond Expr
+	body Stmt
+}
+
 func (i *IfStmt) stmt()    {}
+func (e *EnvStmt) stmt()   {}
 func (vs *VarStmt) stmt()  {}
 func (es *ExprStmt) stmt() {}
 func (p *PrintStmt) stmt() {}
 func (b *BlockStmt) stmt() {}
-func (e *EnvStmt) stmt()   {}
+func (w *WhileStmt) stmt() {}
 
 func (p *PrintStmt) accept(v StmtVisitor) {
 	v.visitPrintStmt(p)
@@ -69,4 +76,8 @@ func (i *IfStmt) accept(v StmtVisitor) {
 
 func (e *EnvStmt) accept(v StmtVisitor) {
 	v.visitEnvStmt(e)
+}
+
+func (w *WhileStmt) accept(v StmtVisitor) {
+	v.visitWhileStmt(w)
 }

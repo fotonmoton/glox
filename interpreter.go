@@ -210,7 +210,12 @@ func (i *Interpreter) visitEnvStmt(e *EnvStmt) {
 		fmt.Printf("%*s", ident, "")
 		fmt.Printf("%+v\n", *e)
 	}
+}
 
+func (i *Interpreter) visitWhileStmt(w *WhileStmt) {
+	for isTruthy(i.evaluate(w.cond)) {
+		w.body.accept(i)
+	}
 }
 
 func (i *Interpreter) panic(re *RuntimeError) {

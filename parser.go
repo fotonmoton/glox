@@ -66,14 +66,20 @@ func (p *Parser) varDecl() Stmt {
 	return &VarStmt{name, initializer}
 }
 
-// statement -> exprStmt | printStmt | block | ifStmt | env
+// statement ->  exprStmt
+//
+//	| whileStmt
+//	| printStmt
+//	| blockStmt
+//	| ifStmt
+//	| env
 func (p *Parser) statement() Stmt {
 	if p.match(PRINT) {
 		return p.printStmt()
 	}
 
 	if p.match(LEFT_BRACE) {
-		return p.block()
+		return p.blockStmt()
 	}
 
 	if p.match(IF) {
@@ -82,6 +88,10 @@ func (p *Parser) statement() Stmt {
 
 	if p.match(ENV) {
 		return p.envStmt()
+	}
+
+	if p.match(WHILE) {
+		return p.whileStmt()
 	}
 
 	return p.exprStmt()
@@ -111,8 +121,8 @@ func (p *Parser) printStmt() Stmt {
 	return &PrintStmt{expr}
 }
 
-// block -> "{" statement* "}"
-func (p *Parser) block() Stmt {
+// blockStmt -> "{" statement* "}"
+func (p *Parser) blockStmt() Stmt {
 
 	stmts := []Stmt{}
 	for !p.check(RIGHT_BRACE) && !p.isAtEnd() {
@@ -138,6 +148,16 @@ func (p *Parser) ifStmt() Stmt {
 	}
 
 	return &IfStmt{name, expr, then, or}
+}
+
+// while -> "while" "(" expression ")" statement
+func (p *Parser) whileStmt() Stmt {
+	p.consume(LEFT_PAREN, "Expect '(' after 'while'.")
+	cond := p.expression()
+	p.consume(RIGHT_PAREN, "Expect ')' after 'while' expression.")
+	body := p.statement()
+
+	return &WhileStmt{cond, body}
 }
 
 // env -> "env" ";"

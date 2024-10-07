@@ -33,5 +33,10 @@ func (env *Environment) exists(key string) bool {
 }
 
 func (env *Environment) set(key string, val any) {
+
+	if env.parent != nil && env.parent.exists(key) {
+		env.parent.set(key, val)
+	}
+
 	env.values[key] = val
 }
