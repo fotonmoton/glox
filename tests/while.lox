@@ -1,0 +1,28 @@
+var iterator = 100;
+
+{
+    while (iterator > 0) {
+       {
+         print iterator;
+        iterator = iterator - 2;
+       }
+    }
+}
+
+
+{
+    while (iterator < 100) {
+        {
+            print iterator;
+            iterator = iterator + 2;
+
+            if (iterator > 50) {
+                break;
+            }
+
+            print "shoud not be printed after 50";
+        }
+    }
+}
+
+print iterator;

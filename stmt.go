@@ -8,6 +8,7 @@ type StmtVisitor interface {
 	visitBlockStmt(b *BlockStmt)
 	visitEnvStmt(e *EnvStmt)
 	visitWhileStmt(w *WhileStmt)
+	visitBreakStmt(b *BreakStmt)
 }
 
 type Stmt interface {
@@ -46,6 +47,8 @@ type WhileStmt struct {
 	body Stmt
 }
 
+type BreakStmt struct{}
+
 func (i *IfStmt) stmt()    {}
 func (e *EnvStmt) stmt()   {}
 func (vs *VarStmt) stmt()  {}
@@ -53,6 +56,7 @@ func (es *ExprStmt) stmt() {}
 func (p *PrintStmt) stmt() {}
 func (b *BlockStmt) stmt() {}
 func (w *WhileStmt) stmt() {}
+func (b *BreakStmt) stmt() {}
 
 func (p *PrintStmt) accept(v StmtVisitor) {
 	v.visitPrintStmt(p)
@@ -80,4 +84,8 @@ func (e *EnvStmt) accept(v StmtVisitor) {
 
 func (w *WhileStmt) accept(v StmtVisitor) {
 	v.visitWhileStmt(w)
+}
+
+func (b *BreakStmt) accept(v StmtVisitor) {
+	v.visitBreakStmt(b)
 }

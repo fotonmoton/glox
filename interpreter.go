@@ -10,6 +10,7 @@ import (
 type Interpreter struct {
 	env    *Environment
 	errors []error
+	brk    bool
 }
 
 type RuntimeError struct {
@@ -22,7 +23,7 @@ func (re *RuntimeError) Error() string {
 }
 
 func newInterpreter() *Interpreter {
-	return &Interpreter{env: newEnvironment(nil)}
+	return &Interpreter{env: newEnvironment(nil), errors: []error{}, brk: false}
 }
 
 func (i *Interpreter) interpret(stmts []Stmt) []error {
@@ -180,10 +181,19 @@ func (i *Interpreter) visitBlockStmt(b *BlockStmt) {
 	i.env = newEnvironment(parentEnv)
 
 	for _, stmt := range b.stmts {
+
+		if i.brk {
+			break
+		}
+
 		stmt.accept(i)
 	}
 
 	i.env = parentEnv
+}
+
+func (i *Interpreter) visitBreakStmt(b *BreakStmt) {
+	i.brk = true
 }
 
 func (i *Interpreter) visitIfStmt(iff *IfStmt) {
@@ -214,7 +224,14 @@ func (i *Interpreter) visitEnvStmt(e *EnvStmt) {
 
 func (i *Interpreter) visitWhileStmt(w *WhileStmt) {
 	for isTruthy(i.evaluate(w.cond)) {
+
+		if i.brk {
+			i.brk = false
+			break
+		}
+
 		w.body.accept(i)
+
 	}
 }
 

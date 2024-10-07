@@ -71,6 +71,7 @@ func (p *Parser) varDecl() Stmt {
 //	| whileStmt
 //	| printStmt
 //	| blockStmt
+//	| breakStmt
 //	| ifStmt
 //	| env
 func (p *Parser) statement() Stmt {
@@ -92,6 +93,10 @@ func (p *Parser) statement() Stmt {
 
 	if p.match(WHILE) {
 		return p.whileStmt()
+	}
+
+	if p.match(BREAK) {
+		return p.breakStmt()
 	}
 
 	return p.exprStmt()
@@ -132,6 +137,12 @@ func (p *Parser) blockStmt() Stmt {
 	p.consume(RIGHT_BRACE, "Unclosed block: Expected '}'.")
 
 	return &BlockStmt{stmts}
+}
+
+// breakStmt -> break ";"
+func (p *Parser) breakStmt() Stmt {
+	p.consume(SEMICOLON, "Expect ';' after break.")
+	return &BreakStmt{}
 }
 
 // if -> "if" "(" expression ")" statement ("else" statement)?
@@ -304,7 +315,7 @@ func (p *Parser) primary() Expr {
 		return &Grouping{expr}
 	}
 
-	// p.panic(&ParseError{p.peek(), "Expect expression"})
+	p.panic(&ParseError{p.peek(), "Expect expression"})
 
 	return nil
 }

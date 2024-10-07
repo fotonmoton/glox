@@ -125,3 +125,7 @@ func (as *AstStringer) visitWhileStmt(w *WhileStmt) {
 	w.body.accept(as)
 	as.str.WriteString(")")
 }
+
+func (as *AstStringer) visitBreakStmt(b *BreakStmt) {
+	as.str.WriteString("(break)")
+}
