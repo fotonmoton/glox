@@ -231,7 +231,6 @@ func (i *Interpreter) visitWhileStmt(w *WhileStmt) {
 		}
 
 		w.body.accept(i)
-
 	}
 }
 

@@ -13,16 +13,23 @@ var iterator = 100;
 {
     while (iterator < 100) {
         {
-            print iterator;
-            iterator = iterator + 2;
+            {
+                print iterator;
+                iterator = iterator + 2;
 
-            if (iterator > 50) {
-                break;
+                if (iterator > 50) break;
+
+                print "shoud not be printed after 50";
             }
 
-            print "shoud not be printed after 50";
+            print "OUTER also shoud not be printed after 50";
+
         }
     }
 }
+
+while (iterator < 100) iterator = iterator + 2; 
+
+
 
 print iterator;

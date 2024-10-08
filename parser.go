@@ -69,6 +69,7 @@ func (p *Parser) varDecl() Stmt {
 // statement ->  exprStmt
 //
 //	| whileStmt
+//	| forStmt
 //	| printStmt
 //	| blockStmt
 //	| breakStmt
@@ -93,6 +94,10 @@ func (p *Parser) statement() Stmt {
 
 	if p.match(WHILE) {
 		return p.whileStmt()
+	}
+
+	if p.match(FOR) {
+		return p.forStmt()
 	}
 
 	if p.match(BREAK) {
@@ -169,6 +174,60 @@ func (p *Parser) whileStmt() Stmt {
 	body := p.statement()
 
 	return &WhileStmt{cond, body}
+}
+
+// for -> "for" ( "(" ( varDecl | exprStmt | ";" ) expression? ";" expression  ")" )? statement
+func (p *Parser) forStmt() Stmt {
+
+	if p.check(LEFT_BRACE) {
+		return &WhileStmt{&Literal{true}, p.statement()}
+	}
+
+	p.consume(LEFT_PAREN, "Expect '(' after 'for'.")
+
+	var init Stmt
+
+	if p.match(SEMICOLON) {
+		init = nil
+	} else if p.match(VAR) {
+		init = p.varDecl()
+	} else {
+		init = p.exprStmt()
+	}
+
+	var cond Expr
+
+	if !p.check(SEMICOLON) {
+		cond = p.expression()
+	}
+
+	p.consume(SEMICOLON, "Expect ';' after for loop condition;")
+
+	var incr Expr
+
+	if !p.check(RIGHT_PAREN) {
+		incr = p.expression()
+	}
+
+	p.consume(RIGHT_PAREN, "Expect ')' after for clauses;")
+
+	var body = p.statement()
+
+	if incr != nil {
+		body = &BlockStmt{[]Stmt{body, &ExprStmt{incr}}}
+	}
+
+	if cond == nil {
+		cond = &Literal{true}
+	}
+
+	body = &WhileStmt{cond, body}
+
+	if init != nil {
+		body = &BlockStmt{[]Stmt{init, body}}
+	}
+
+	return body
 }
 
 // env -> "env" ";"

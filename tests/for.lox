@@ -1,0 +1,36 @@
+
+print "full form -------------------------";
+for (var i = 0; i < 100; i = i + 20) print i;
+
+print "without init ----------------------";
+var n = 100;
+for (;n > 0; n = n - 20) print n;
+
+print "only cond -----------------------";
+
+var i = 1;
+for (;i < 100;) {
+    print i;
+    i = i + 10;
+}
+
+print "inf ---------------------------";
+
+var b = 0;
+for {
+    print b;
+    b = b + 5;
+    if (b > 10) break;
+
+    print "after break";
+}
+
+print "fibonachi ------------------------";
+var temp;
+var first = 0;
+
+for (var second = 1; first < 10000; second = temp + second) {
+    print first;
+    temp  = first;
+    first = second;
+}
