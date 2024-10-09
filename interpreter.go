@@ -197,6 +197,10 @@ func (i *Interpreter) visitCall(c *Call) any {
 	return callable.call(i, args...)
 }
 
+func (i *Interpreter) visitFunStmt(f *FunStmt) {
+	i.env.set(f.name.lexeme, newCallable(f))
+}
+
 func (i *Interpreter) visitPrintStmt(p *PrintStmt) {
 	fmt.Printf("%v\n", i.evaluate(p.val))
 }
@@ -217,9 +221,13 @@ func (i *Interpreter) visitVarStmt(v *VarStmt) {
 }
 
 func (i *Interpreter) visitBlockStmt(b *BlockStmt) {
+	i.executeBlock(b, newEnvironment(i.env))
+}
+
+func (i *Interpreter) executeBlock(b *BlockStmt, current *Environment) {
 
 	parentEnv := i.env
-	i.env = newEnvironment(parentEnv)
+	i.env = current
 
 	for _, stmt := range b.stmts {
 

@@ -1,4 +1,26 @@
 
-print "functions test";
+print "native function";
 
 print clock();
+
+fun count(n) {
+    if (n > 1) count(n - 1);
+    print n;
+}
+
+count(10);
+
+fun hi(name, surname) {
+    print "hello, " + name + " " + surname + "!";
+}
+
+hi("John", "Doe");
+
+
+fun re(turn) {
+    print "before retrun";
+    return turn;
+    print "should not be printed";
+}
+
+print re("print");

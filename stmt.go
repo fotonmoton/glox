@@ -3,10 +3,11 @@ package main
 type StmtVisitor interface {
 	visitIfStmt(i *IfStmt)
 	visitVarStmt(v *VarStmt)
+	visitEnvStmt(e *EnvStmt)
+	visitFunStmt(f *FunStmt)
 	visitExprStmt(es *ExprStmt)
 	visitPrintStmt(p *PrintStmt)
 	visitBlockStmt(b *BlockStmt)
-	visitEnvStmt(e *EnvStmt)
 	visitWhileStmt(w *WhileStmt)
 	visitBreakStmt(b *BreakStmt)
 }
@@ -49,7 +50,14 @@ type WhileStmt struct {
 
 type BreakStmt struct{}
 
+type FunStmt struct {
+	name Token
+	args []Token
+	body *BlockStmt
+}
+
 func (i *IfStmt) stmt()    {}
+func (f *FunStmt) stmt()   {}
 func (e *EnvStmt) stmt()   {}
 func (vs *VarStmt) stmt()  {}
 func (es *ExprStmt) stmt() {}
@@ -88,4 +96,8 @@ func (w *WhileStmt) accept(v StmtVisitor) {
 
 func (b *BreakStmt) accept(v StmtVisitor) {
 	v.visitBreakStmt(b)
+}
+
+func (f *FunStmt) accept(v StmtVisitor) {
+	v.visitFunStmt(f)
 }

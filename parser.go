@@ -43,18 +43,23 @@ func (p *Parser) parse() ([]Stmt, []error) {
 	return stmts, p.errors
 }
 
-// declaration -> varDecl | statement
+// declaration -> varDecl | funDecl | statement
 func (p *Parser) declaration() Stmt {
 	defer p.synchronize()
 	if p.match(VAR) {
 		return p.varDecl()
 	}
+
+	if p.match(FUN) {
+		return p.function("function")
+	}
+
 	return p.statement()
 }
 
 // varDecl -> "var" IDENTIFIER ("=" expression)? ";"
 func (p *Parser) varDecl() Stmt {
-	name := p.consume(IDENTIFIER, "expect identifier for variable")
+	name := p.consume(IDENTIFIER, "Expect identifier for variable")
 
 	var initializer Expr = nil
 	if p.match(EQUAL) {
@@ -64,6 +69,37 @@ func (p *Parser) varDecl() Stmt {
 	p.consume(SEMICOLON, "Expect ';' after expression.")
 
 	return &VarStmt{name, initializer}
+}
+
+// funDecl -> "fun" function
+// function -> IDENTIFIER "("  parameters? ")" blockStmt
+// parameters -> IDENTIFIER ( "," IDENTIFIER )*
+func (p *Parser) function(kind string) Stmt {
+	name := p.consume(IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
+
+	p.consume(LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name.", kind))
+
+	args := []Token{}
+	for !p.check(RIGHT_PAREN) {
+		args = append(
+			args,
+			p.consume(
+				IDENTIFIER,
+				fmt.Sprintf("Expect %s argument.", kind),
+			),
+		)
+
+		if p.check(COMMA) {
+			p.advance()
+		}
+	}
+
+	p.consume(RIGHT_PAREN, fmt.Sprintf("Expect ')' after %s name.", kind))
+	p.consume(LEFT_BRACE, fmt.Sprintf("Expect '{' after %s arguments.", kind))
+
+	body := p.blockStmt()
+
+	return &FunStmt{name, args, body}
 }
 
 // statement ->  exprStmt
@@ -132,7 +168,7 @@ func (p *Parser) printStmt() Stmt {
 }
 
 // blockStmt -> "{" statement* "}"
-func (p *Parser) blockStmt() Stmt {
+func (p *Parser) blockStmt() *BlockStmt {
 
 	stmts := []Stmt{}
 	for !p.check(RIGHT_BRACE) && !p.isAtEnd() {

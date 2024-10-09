@@ -140,3 +140,16 @@ func (as *AstStringer) visitWhileStmt(w *WhileStmt) {
 func (as *AstStringer) visitBreakStmt(b *BreakStmt) {
 	as.str.WriteString("(break)")
 }
+
+func (as *AstStringer) visitFunStmt(f *FunStmt) {
+	as.str.WriteString(fmt.Sprintf("(fun %s", f.name.lexeme))
+	if len(f.args) != 0 {
+		as.str.WriteString("(")
+		for _, arg := range f.args {
+			as.str.WriteString(arg.lexeme)
+		}
+		as.str.WriteString(")")
+	}
+	as.str.WriteString(")")
+
+}
