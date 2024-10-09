@@ -346,7 +346,41 @@ func (p *Parser) unary() Expr {
 		return &Unary{op, right}
 	}
 
-	return p.primary()
+	return p.call()
+}
+
+// call ->  primary ( "(" arguments? ")"  )*
+func (p *Parser) call() Expr {
+	expr := p.primary()
+
+	for {
+		if p.match(LEFT_PAREN) {
+			expr = p.arguments(expr)
+		} else {
+			break
+		}
+	}
+
+	return expr
+}
+
+// arguments ->  expression ( "," expression )*
+func (p *Parser) arguments(callee Expr) Expr {
+	arguments := []Expr{}
+
+	if !p.check(RIGHT_PAREN) {
+		for {
+			arguments = append(arguments, p.expression())
+
+			if !p.match(COMMA) {
+				break
+			}
+		}
+	}
+
+	paren := p.consume(RIGHT_PAREN, "Expect ')' after arguments.")
+
+	return &Call{callee, paren, arguments}
 }
 
 // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER

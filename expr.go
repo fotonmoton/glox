@@ -1,6 +1,7 @@
 package main
 
 type ExprVisitor interface {
+	visitCall(c *Call) any
 	visitUnary(u *Unary) any
 	visitBinary(b *Binary) any
 	visitLiteral(l *Literal) any
@@ -49,6 +50,13 @@ type Logical struct {
 	right    Expr
 }
 
+type Call struct {
+	callee    Expr
+	paren     Token
+	arguments []Expr
+}
+
+func (c *Call) expr()     {}
 func (u *Unary) expr()    {}
 func (a *Assign) expr()   {}
 func (b *Binary) expr()   {}
@@ -83,4 +91,8 @@ func (a *Assign) accept(v ExprVisitor) any {
 
 func (l *Logical) accept(v ExprVisitor) any {
 	return v.visitLogical(l)
+}
+
+func (c *Call) accept(v ExprVisitor) any {
+	return v.visitCall(c)
 }

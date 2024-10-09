@@ -61,3 +61,12 @@ func (as *ExprToRPN) visitLogical(lo *Logical) any {
 	as.str.WriteString(" or")
 	return nil
 }
+
+func (as *ExprToRPN) visitCall(c *Call) any {
+	for _, arg := range c.arguments {
+		arg.accept(as)
+	}
+	c.callee.accept(as)
+	as.str.WriteString(" call")
+	return nil
+}

@@ -1,0 +1,4 @@
+
+print "functions test";
+
+print clock();

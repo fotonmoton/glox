@@ -71,6 +71,17 @@ func (as *AstStringer) visitLogical(l *Logical) any {
 	return nil
 }
 
+func (as *AstStringer) visitCall(c *Call) any {
+	as.str.WriteString("(call ")
+	c.callee.accept(as)
+	for _, arg := range c.arguments {
+		arg.accept(as)
+	}
+	as.str.WriteString(")")
+
+	return nil
+}
+
 func (as *AstStringer) visitPrintStmt(p *PrintStmt) {
 	as.str.WriteString("(print ")
 	p.val.accept(as)

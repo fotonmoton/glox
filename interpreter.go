@@ -8,9 +8,10 @@ import (
 )
 
 type Interpreter struct {
-	env    *Environment
-	errors []error
-	brk    bool
+	env     *Environment
+	globals *Environment
+	errors  []error
+	brk     bool
 }
 
 type RuntimeError struct {
@@ -23,7 +24,17 @@ func (re *RuntimeError) Error() string {
 }
 
 func newInterpreter() *Interpreter {
-	return &Interpreter{env: newEnvironment(nil), errors: []error{}, brk: false}
+
+	globals := newEnvironment(nil)
+
+	defineGlobals(globals)
+
+	return &Interpreter{
+		env:     globals,
+		globals: globals,
+		errors:  []error{},
+		brk:     false,
+	}
 }
 
 func (i *Interpreter) interpret(stmts []Stmt) []error {
@@ -154,6 +165,36 @@ func (i *Interpreter) visitLogical(lo *Logical) any {
 	}
 
 	return i.evaluate(lo.right)
+}
+
+func (i *Interpreter) visitCall(c *Call) any {
+
+	callee := i.evaluate(c.callee)
+
+	args := []any{}
+
+	for _, arg := range c.arguments {
+		args = append(args, i.evaluate(arg))
+	}
+
+	callable, ok := callee.(*Callable)
+
+	if !ok {
+		i.panic(&RuntimeError{c.paren, "Can only call function and classes."})
+	}
+
+	if callable.arity != len(args) {
+		i.panic(&RuntimeError{
+			c.paren,
+			fmt.Sprintf(
+				"Expected %d arguments  but got %d",
+				callable.arity,
+				len(args),
+			),
+		})
+	}
+
+	return callable.call(i, args...)
 }
 
 func (i *Interpreter) visitPrintStmt(p *PrintStmt) {
