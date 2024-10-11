@@ -171,18 +171,18 @@ func (i *Interpreter) visitCall(c *Call) any {
 		args = append(args, i.evaluate(arg))
 	}
 
-	callable, ok := callee.(*Callable)
+	callable, ok := callee.(Callable)
 
 	if !ok {
 		i.panic(&RuntimeError{c.paren, "Can only call function and classes."})
 	}
 
-	if callable.arity != len(args) {
+	if callable.arity() != len(args) {
 		i.panic(&RuntimeError{
 			c.paren,
 			fmt.Sprintf(
 				"Expected %d arguments  but got %d",
-				callable.arity,
+				callable.arity(),
 				len(args),
 			),
 		})
@@ -192,7 +192,7 @@ func (i *Interpreter) visitCall(c *Call) any {
 }
 
 func (i *Interpreter) visitFunStmt(f *FunStmt) {
-	i.env.define(f.name.lexeme, newCallable(f))
+	i.env.define(f.name.lexeme, newFunction(f, i.env))
 }
 
 func (i *Interpreter) visitReturnStmt(r *ReturnStmt) {

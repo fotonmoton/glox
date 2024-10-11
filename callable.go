@@ -1,36 +1,44 @@
 package main
 
-type Callable struct {
-	arity int
-	call  func(*Interpreter, ...any) any
+type Callable interface {
+	arity() int
+	call(i *Interpreter, args ...any) (ret any)
 }
 
-func newCallable(f *FunStmt) *Callable {
-	return &Callable{
-		arity: len(f.args),
-		call: func(i *Interpreter, args ...any) (ret any) {
+type Function struct {
+	definition *FunStmt
+	closure    *Environment
+}
 
-			defer func() {
-				if err := recover(); err != nil {
-					re, ok := err.(Return)
+func (f *Function) call(i *Interpreter, args ...any) (ret any) {
 
-					if !ok {
-						panic(err)
-					}
+	defer func() {
+		if err := recover(); err != nil {
+			re, ok := err.(Return)
 
-					ret = re.val
-				}
-			}()
-
-			env := newEnvironment(i.globals)
-
-			for idx, arg := range f.args {
-				env.define(arg.lexeme, args[idx])
+			if !ok {
+				panic(err)
 			}
 
-			i.executeBlock(f.body, env)
+			ret = re.val
+		}
+	}()
 
-			return nil
-		},
+	env := newEnvironment(f.closure)
+
+	for idx, arg := range f.definition.args {
+		env.define(arg.lexeme, args[idx])
 	}
+
+	i.executeBlock(f.definition.body, env)
+
+	return nil
+}
+
+func (f *Function) arity() int {
+	return len(f.definition.args)
+}
+
+func newFunction(fun *FunStmt, env *Environment) Callable {
+	return &Function{fun, env}
 }

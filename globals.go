@@ -2,12 +2,16 @@ package main
 
 import "time"
 
-func defineGlobals(env *Environment) {
+type ClockFun struct{}
 
-	env.define("clock", &Callable{
-		arity: 0,
-		call: func(i *Interpreter, arg ...any) any {
-			return time.Now().Unix()
-		},
-	})
+func (cf *ClockFun) call(i *Interpreter, args ...any) any {
+	return time.Now().Unix()
+}
+
+func (cf *ClockFun) arity() int {
+	return 0
+}
+
+func defineGlobals(env *Environment) {
+	env.define("clock", &ClockFun{})
 }
