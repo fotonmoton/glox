@@ -51,9 +51,9 @@ type Logical struct {
 }
 
 type Call struct {
-	callee    Expr
-	paren     Token
-	arguments []Expr
+	callee Expr
+	paren  Token
+	args   []Expr
 }
 
 func (c *Call) expr()     {}

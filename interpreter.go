@@ -19,6 +19,10 @@ type RuntimeError struct {
 	msg   string
 }
 
+type Return struct {
+	val any
+}
+
 func (re *RuntimeError) Error() string {
 	return fmt.Sprintf("RuntimeError [%d][%s] Error: %s", re.token.line, re.token.typ, re.msg)
 }
@@ -131,25 +135,15 @@ func (i *Interpreter) visitUnary(u *Unary) any {
 }
 
 func (i *Interpreter) visitVariable(v *Variable) any {
-
-	if !i.env.exists(v.name.lexeme) {
-		i.panic(&RuntimeError{v.name, fmt.Sprintf("Can't assign: undefined variable '%s'.", v.name.lexeme)})
-	}
-
-	val := i.env.get(v.name.lexeme)
-	return val
+	return i.env.get(v.name.lexeme)
 }
 
 func (i *Interpreter) visitAssignment(a *Assign) any {
-
-	if !i.env.exists(a.variable.lexeme) {
-		i.panic(&RuntimeError{a.variable, fmt.Sprintf("Can't assign: undefined variable '%s'.", a.variable.lexeme)})
-	}
-
 	val := i.evaluate(a.value)
-
-	i.env.set(a.variable.lexeme, val)
-
+	err := i.env.assign(a.variable, val)
+	if err != nil {
+		i.panic(err)
+	}
 	return val
 }
 
@@ -173,7 +167,7 @@ func (i *Interpreter) visitCall(c *Call) any {
 
 	args := []any{}
 
-	for _, arg := range c.arguments {
+	for _, arg := range c.args {
 		args = append(args, i.evaluate(arg))
 	}
 
@@ -198,7 +192,17 @@ func (i *Interpreter) visitCall(c *Call) any {
 }
 
 func (i *Interpreter) visitFunStmt(f *FunStmt) {
-	i.env.set(f.name.lexeme, newCallable(f))
+	i.env.define(f.name.lexeme, newCallable(f))
+}
+
+func (i *Interpreter) visitReturnStmt(r *ReturnStmt) {
+	var value any
+
+	if r.value != nil {
+		value = i.evaluate(r.value)
+	}
+
+	panic(Return{value})
 }
 
 func (i *Interpreter) visitPrintStmt(p *PrintStmt) {
@@ -217,7 +221,7 @@ func (i *Interpreter) visitVarStmt(v *VarStmt) {
 		val = i.evaluate(v.initializer)
 	}
 
-	i.env.set(v.name.lexeme, val)
+	i.env.define(v.name.lexeme, val)
 }
 
 func (i *Interpreter) visitBlockStmt(b *BlockStmt) {
@@ -229,6 +233,12 @@ func (i *Interpreter) executeBlock(b *BlockStmt, current *Environment) {
 	parentEnv := i.env
 	i.env = current
 
+	// need to restore environment after
+	// panic(Return) in visitReturnStmt
+	defer func() {
+		i.env = parentEnv
+	}()
+
 	for _, stmt := range b.stmts {
 
 		if i.brk {
@@ -238,7 +248,6 @@ func (i *Interpreter) executeBlock(b *BlockStmt, current *Environment) {
 		stmt.accept(i)
 	}
 
-	i.env = parentEnv
 }
 
 func (i *Interpreter) visitBreakStmt(b *BreakStmt) {
@@ -262,7 +271,7 @@ func (i *Interpreter) visitEnvStmt(e *EnvStmt) {
 
 	for walker != nil {
 		flatten = slices.Insert(flatten, 0, walker)
-		walker = walker.parent
+		walker = walker.enclosing
 	}
 
 	for ident, e := range flatten {

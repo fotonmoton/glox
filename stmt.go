@@ -10,6 +10,7 @@ type StmtVisitor interface {
 	visitBlockStmt(b *BlockStmt)
 	visitWhileStmt(w *WhileStmt)
 	visitBreakStmt(b *BreakStmt)
+	visitReturnStmt(r *ReturnStmt)
 }
 
 type Stmt interface {
@@ -56,15 +57,20 @@ type FunStmt struct {
 	body *BlockStmt
 }
 
-func (i *IfStmt) stmt()    {}
-func (f *FunStmt) stmt()   {}
-func (e *EnvStmt) stmt()   {}
-func (vs *VarStmt) stmt()  {}
-func (es *ExprStmt) stmt() {}
-func (p *PrintStmt) stmt() {}
-func (b *BlockStmt) stmt() {}
-func (w *WhileStmt) stmt() {}
-func (b *BreakStmt) stmt() {}
+type ReturnStmt struct {
+	value Expr
+}
+
+func (i *IfStmt) stmt()     {}
+func (f *FunStmt) stmt()    {}
+func (e *EnvStmt) stmt()    {}
+func (vs *VarStmt) stmt()   {}
+func (es *ExprStmt) stmt()  {}
+func (p *PrintStmt) stmt()  {}
+func (b *BlockStmt) stmt()  {}
+func (w *WhileStmt) stmt()  {}
+func (b *BreakStmt) stmt()  {}
+func (r *ReturnStmt) stmt() {}
 
 func (p *PrintStmt) accept(v StmtVisitor) {
 	v.visitPrintStmt(p)
@@ -100,4 +106,8 @@ func (b *BreakStmt) accept(v StmtVisitor) {
 
 func (f *FunStmt) accept(v StmtVisitor) {
 	v.visitFunStmt(f)
+}
+
+func (r *ReturnStmt) accept(v StmtVisitor) {
+	v.visitReturnStmt(r)
 }

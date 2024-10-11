@@ -110,6 +110,7 @@ func (p *Parser) function(kind string) Stmt {
 //	| blockStmt
 //	| breakStmt
 //	| ifStmt
+//	| returnStmt
 //	| env
 func (p *Parser) statement() Stmt {
 	if p.match(PRINT) {
@@ -138,6 +139,10 @@ func (p *Parser) statement() Stmt {
 
 	if p.match(BREAK) {
 		return p.breakStmt()
+	}
+
+	if p.match(RETURN) {
+		return p.returnStmt()
 	}
 
 	return p.exprStmt()
@@ -270,6 +275,13 @@ func (p *Parser) forStmt() Stmt {
 func (p *Parser) envStmt() Stmt {
 	p.consume(SEMICOLON, "Expect ';' after 'env'.")
 	return &EnvStmt{}
+}
+
+// return -> "return" expression ";"
+func (p *Parser) returnStmt() Stmt {
+	ret := p.expression()
+	p.consume(SEMICOLON, "Expect ';' after return;")
+	return &ReturnStmt{ret}
 }
 
 // expression -> assignment

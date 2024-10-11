@@ -1,12 +1,14 @@
 package main
 
+import "fmt"
+
 type Environment struct {
-	values map[string]any
-	parent *Environment
+	values    map[string]any
+	enclosing *Environment
 }
 
-func newEnvironment(parent *Environment) *Environment {
-	return &Environment{values: map[string]any{}, parent: parent}
+func newEnvironment(enclosing *Environment) *Environment {
+	return &Environment{map[string]any{}, enclosing}
 }
 
 func (env *Environment) get(key string) any {
@@ -14,8 +16,8 @@ func (env *Environment) get(key string) any {
 		return found
 	}
 
-	if env.parent != nil {
-		return env.parent.get(key)
+	if env.enclosing != nil {
+		return env.enclosing.get(key)
 	}
 
 	return nil
@@ -23,20 +25,22 @@ func (env *Environment) get(key string) any {
 
 func (env *Environment) exists(key string) bool {
 	_, ok := env.values[key]
-
-	if !ok && env.parent != nil {
-		return env.parent.exists(key)
-	}
-
 	return ok
-
 }
 
-func (env *Environment) set(key string, val any) {
+func (env *Environment) define(key string, val any) {
+	env.values[key] = val
+}
 
-	if env.parent != nil && env.parent.exists(key) {
-		env.parent.set(key, val)
+func (env *Environment) assign(key Token, val any) *RuntimeError {
+	if env.exists(key.lexeme) {
+		env.values[key.lexeme] = val
+		return nil
 	}
 
-	env.values[key] = val
+	if env.enclosing == nil {
+		return &RuntimeError{key, fmt.Sprintf("Can't assign: undefined variable '%s'.", key.lexeme)}
+	}
+
+	return env.enclosing.assign(key, val)
 }

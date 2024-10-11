@@ -74,8 +74,12 @@ func (as *AstStringer) visitLogical(l *Logical) any {
 func (as *AstStringer) visitCall(c *Call) any {
 	as.str.WriteString("(call ")
 	c.callee.accept(as)
-	for _, arg := range c.arguments {
+	as.str.WriteString(" ")
+	for i, arg := range c.args {
 		arg.accept(as)
+		if i < len(c.args)-1 {
+			as.str.WriteString(" ")
+		}
 	}
 	as.str.WriteString(")")
 
@@ -145,11 +149,21 @@ func (as *AstStringer) visitFunStmt(f *FunStmt) {
 	as.str.WriteString(fmt.Sprintf("(fun %s", f.name.lexeme))
 	if len(f.args) != 0 {
 		as.str.WriteString("(")
-		for _, arg := range f.args {
+		for i, arg := range f.args {
 			as.str.WriteString(arg.lexeme)
+			if i < len(f.args)-1 {
+				as.str.WriteString(" ")
+			}
 		}
 		as.str.WriteString(")")
 	}
+	f.body.accept(as)
 	as.str.WriteString(")")
 
+}
+
+func (as *AstStringer) visitReturnStmt(r *ReturnStmt) {
+	as.str.WriteString("(return ")
+	r.value.accept(as)
+	as.str.WriteString(")")
 }
