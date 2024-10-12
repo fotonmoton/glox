@@ -3,6 +3,7 @@ package main
 type ExprVisitor interface {
 	visitCall(c *Call) any
 	visitUnary(u *Unary) any
+	visitLambda(l *Lambda) any
 	visitBinary(b *Binary) any
 	visitLiteral(l *Literal) any
 	visitGrouping(g *Grouping) any
@@ -56,10 +57,17 @@ type Call struct {
 	args   []Expr
 }
 
+type Lambda struct {
+	name Token
+	args []Token
+	body *BlockStmt
+}
+
 func (c *Call) expr()     {}
 func (u *Unary) expr()    {}
 func (a *Assign) expr()   {}
 func (b *Binary) expr()   {}
+func (l *Lambda) expr()   {}
 func (l *Literal) expr()  {}
 func (g *Grouping) expr() {}
 func (v *Variable) expr() {}
@@ -95,4 +103,8 @@ func (l *Logical) accept(v ExprVisitor) any {
 
 func (c *Call) accept(v ExprVisitor) any {
 	return v.visitCall(c)
+}
+
+func (l *Lambda) accept(v ExprVisitor) any {
+	return v.visitLambda(l)
 }

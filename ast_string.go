@@ -86,6 +86,24 @@ func (as *AstStringer) visitCall(c *Call) any {
 	return nil
 }
 
+func (as *AstStringer) visitLambda(l *Lambda) any {
+	as.str.WriteString("(lambda ")
+	if len(l.args) != 0 {
+		as.str.WriteString("(")
+		for i, arg := range l.args {
+			as.str.WriteString(arg.lexeme)
+			if i < len(l.args)-1 {
+				as.str.WriteString(" ")
+			}
+		}
+		as.str.WriteString(")")
+	}
+	l.body.accept(as)
+	as.str.WriteString(")")
+
+	return nil
+}
+
 func (as *AstStringer) visitPrintStmt(p *PrintStmt) {
 	as.str.WriteString("(print ")
 	p.val.accept(as)
@@ -159,7 +177,6 @@ func (as *AstStringer) visitFunStmt(f *FunStmt) {
 	}
 	f.body.accept(as)
 	as.str.WriteString(")")
-
 }
 
 func (as *AstStringer) visitReturnStmt(r *ReturnStmt) {

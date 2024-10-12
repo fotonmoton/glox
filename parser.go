@@ -431,7 +431,15 @@ func (p *Parser) arguments(callee Expr) Expr {
 	return &Call{callee, paren, arguments}
 }
 
-// primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER
+// primary -> IDENTIFIER
+//
+//	| NUMBER
+//	| STRING
+//	| "true"
+//	| "false"
+//	| "nil"
+//	| "(" expression ")"
+//	| lambda
 func (p *Parser) primary() Expr {
 	switch {
 	case p.match(FALSE):
@@ -440,6 +448,10 @@ func (p *Parser) primary() Expr {
 		return &Literal{true}
 	case p.match(NIL):
 		return &Literal{nil}
+	}
+
+	if p.match(FUN) {
+		return p.lambda()
 	}
 
 	if p.match(NUMBER, STRING) {
@@ -459,6 +471,34 @@ func (p *Parser) primary() Expr {
 	p.panic(&ParseError{p.peek(), "Expect expression"})
 
 	return nil
+}
+
+func (p *Parser) lambda() Expr {
+	name := p.previous()
+
+	p.consume(LEFT_PAREN, "Expect '(' before lambda arguments.")
+
+	args := []Token{}
+	for !p.check(RIGHT_PAREN) {
+		args = append(
+			args,
+			p.consume(
+				IDENTIFIER,
+				"Expect lambda argument.",
+			),
+		)
+
+		if p.check(COMMA) {
+			p.advance()
+		}
+	}
+
+	p.consume(RIGHT_PAREN, "Expect ')' after lambda arguments.")
+	p.consume(LEFT_BRACE, "Expect '{' before lambda body.")
+
+	body := p.blockStmt()
+
+	return &Lambda{name, args, body}
 }
 
 func (p *Parser) previous() Token {

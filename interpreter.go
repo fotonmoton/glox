@@ -192,7 +192,11 @@ func (i *Interpreter) visitCall(c *Call) any {
 }
 
 func (i *Interpreter) visitFunStmt(f *FunStmt) {
-	i.env.define(f.name.lexeme, newFunction(f, i.env))
+	i.env.define(f.name.lexeme, newFunction(f.name, f.args, f.body, i.env))
+}
+
+func (i *Interpreter) visitLambda(l *Lambda) any {
+	return newFunction(l.name, l.args, l.body, i.env)
 }
 
 func (i *Interpreter) visitReturnStmt(r *ReturnStmt) {

@@ -6,8 +6,10 @@ type Callable interface {
 }
 
 type Function struct {
-	definition *FunStmt
-	closure    *Environment
+	name    Token
+	args    []Token
+	body    *BlockStmt
+	closure *Environment
 }
 
 func (f *Function) call(i *Interpreter, args ...any) (ret any) {
@@ -26,19 +28,19 @@ func (f *Function) call(i *Interpreter, args ...any) (ret any) {
 
 	env := newEnvironment(f.closure)
 
-	for idx, arg := range f.definition.args {
+	for idx, arg := range f.args {
 		env.define(arg.lexeme, args[idx])
 	}
 
-	i.executeBlock(f.definition.body, env)
+	i.executeBlock(f.body, env)
 
 	return nil
 }
 
 func (f *Function) arity() int {
-	return len(f.definition.args)
+	return len(f.args)
 }
 
-func newFunction(fun *FunStmt, env *Environment) Callable {
-	return &Function{fun, env}
+func newFunction(name Token, args []Token, body *BlockStmt, env *Environment) Callable {
+	return &Function{name, args, body, env}
 }
