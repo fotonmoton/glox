@@ -39,7 +39,7 @@ type EnvStmt struct{}
 
 type IfStmt struct {
 	name Token
-	expr Expr
+	cond Expr
 	then Stmt
 	or   Stmt
 }
@@ -54,7 +54,7 @@ type BreakStmt struct{}
 type FunStmt struct {
 	name Token
 	args []Token
-	body *BlockStmt
+	body []Stmt
 }
 
 type ReturnStmt struct {

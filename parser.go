@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"log"
 )
 
 type Parser struct {
@@ -28,7 +28,7 @@ func newParser(tokens []Token) *Parser {
 }
 
 // program -> declaration* EOF
-func (p *Parser) parse() ([]Stmt, []error) {
+func (p *Parser) parse() ([]Stmt, error) {
 	defer p.recover()
 
 	stmts := []Stmt{}
@@ -40,7 +40,7 @@ func (p *Parser) parse() ([]Stmt, []error) {
 		}
 	}
 
-	return stmts, p.errors
+	return stmts, errors.Join(p.errors...)
 }
 
 // declaration -> varDecl | funDecl | statement
@@ -97,7 +97,7 @@ func (p *Parser) function(kind string) Stmt {
 	p.consume(RIGHT_PAREN, fmt.Sprintf("Expect ')' after %s name.", kind))
 	p.consume(LEFT_BRACE, fmt.Sprintf("Expect '{' after %s arguments.", kind))
 
-	body := p.blockStmt()
+	body := p.block()
 
 	return &FunStmt{name, args, body}
 }
@@ -172,8 +172,7 @@ func (p *Parser) printStmt() Stmt {
 	return &PrintStmt{expr}
 }
 
-// blockStmt -> "{" statement* "}"
-func (p *Parser) blockStmt() *BlockStmt {
+func (p *Parser) block() []Stmt {
 
 	stmts := []Stmt{}
 	for !p.check(RIGHT_BRACE) && !p.isAtEnd() {
@@ -182,7 +181,12 @@ func (p *Parser) blockStmt() *BlockStmt {
 
 	p.consume(RIGHT_BRACE, "Unclosed block: Expected '}'.")
 
-	return &BlockStmt{stmts}
+	return stmts
+}
+
+// blockStmt -> "{" statement* "}"
+func (p *Parser) blockStmt() *BlockStmt {
+	return &BlockStmt{p.block()}
 }
 
 // breakStmt -> break ";"
@@ -496,7 +500,7 @@ func (p *Parser) lambda() Expr {
 	p.consume(RIGHT_PAREN, "Expect ')' after lambda arguments.")
 	p.consume(LEFT_BRACE, "Expect '{' before lambda body.")
 
-	body := p.blockStmt()
+	body := p.block()
 
 	return &Lambda{name, args, body}
 }
@@ -583,7 +587,6 @@ func (p *Parser) recover() {
 
 func (p *Parser) panic(pe *ParseError) {
 	p.errors = append(p.errors, pe)
-	log.Println(pe)
 	panic(pe)
 }
 

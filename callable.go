@@ -8,7 +8,7 @@ type Callable interface {
 type Function struct {
 	name    Token
 	args    []Token
-	body    *BlockStmt
+	body    []Stmt
 	closure *Environment
 }
 
@@ -41,6 +41,6 @@ func (f *Function) arity() int {
 	return len(f.args)
 }
 
-func newFunction(name Token, args []Token, body *BlockStmt, env *Environment) Callable {
+func newFunction(name Token, args []Token, body []Stmt, env *Environment) Callable {
 	return &Function{name, args, body, env}
 }

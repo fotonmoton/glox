@@ -74,7 +74,9 @@ func (as *AstStringer) visitLogical(l *Logical) any {
 func (as *AstStringer) visitCall(c *Call) any {
 	as.str.WriteString("(call ")
 	c.callee.accept(as)
-	as.str.WriteString(" ")
+	if len(c.args) != 0 {
+		as.str.WriteString(" ")
+	}
 	for i, arg := range c.args {
 		arg.accept(as)
 		if i < len(c.args)-1 {
@@ -98,7 +100,9 @@ func (as *AstStringer) visitLambda(l *Lambda) any {
 		}
 		as.str.WriteString(")")
 	}
-	l.body.accept(as)
+	for _, stmt := range l.body {
+		stmt.accept(as)
+	}
 	as.str.WriteString(")")
 
 	return nil
@@ -137,7 +141,7 @@ func (as *AstStringer) visitBlockStmt(b *BlockStmt) {
 
 func (as *AstStringer) visitIfStmt(i *IfStmt) {
 	as.str.WriteString("(if ")
-	i.expr.accept(as)
+	i.cond.accept(as)
 	as.str.WriteString(" ")
 	i.then.accept(as)
 	if i.or != nil {
@@ -164,7 +168,7 @@ func (as *AstStringer) visitBreakStmt(b *BreakStmt) {
 }
 
 func (as *AstStringer) visitFunStmt(f *FunStmt) {
-	as.str.WriteString(fmt.Sprintf("(fun %s", f.name.lexeme))
+	as.str.WriteString(fmt.Sprintf("(fun %s ", f.name.lexeme))
 	if len(f.args) != 0 {
 		as.str.WriteString("(")
 		for i, arg := range f.args {
@@ -175,7 +179,9 @@ func (as *AstStringer) visitFunStmt(f *FunStmt) {
 		}
 		as.str.WriteString(")")
 	}
-	f.body.accept(as)
+	for _, stmt := range f.body {
+		stmt.accept(as)
+	}
 	as.str.WriteString(")")
 }
 

@@ -44,3 +44,20 @@ func (env *Environment) assign(key Token, val any) *RuntimeError {
 
 	return env.enclosing.assign(key, val)
 }
+
+func (env *Environment) getAt(distance int, key string) any {
+	return env.ancestor(distance).get(key)
+}
+
+func (env *Environment) assignAt(distance int, key Token, val any) {
+	env.ancestor(distance).values[key.lexeme] = val
+}
+
+func (env *Environment) ancestor(distance int) *Environment {
+	parent := env
+	for i := 0; i < distance; i++ {
+		parent = parent.enclosing
+	}
+
+	return parent
+}

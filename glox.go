@@ -28,12 +28,22 @@ func (gl *Glox) runPrompt() {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Split(bufio.ScanLines)
 
+	doRun := func(line []byte) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println(err)
+			}
+		}()
+
+		gl.run(line)
+	}
+
 	for {
 		print("> ")
 		if !scanner.Scan() {
 			break
 		}
-		gl.run(scanner.Bytes())
+		doRun(scanner.Bytes())
 	}
 }
 
@@ -48,11 +58,29 @@ func (gl *Glox) runFile(path string) {
 }
 
 func (gl *Glox) run(source []byte) {
-	tokens, _ := newScanner(source).scan()
+	tokens, err := newScanner(source).scan()
 
-	stmts, _ := newParser(tokens).parse()
+	if err != nil {
+		panic(err)
+	}
+
+	stmts, parseErrs := newParser(tokens).parse()
+
+	if parseErrs != nil {
+		panic(parseErrs)
+	}
 
 	fmt.Println(AstStringer{stmts: stmts})
 
-	gl.Interpreter.interpret(stmts)
+	resolveErrs := newResolver(gl.Interpreter).resolveStmts(stmts...)
+
+	if resolveErrs != nil {
+		panic(resolveErrs)
+	}
+
+	interpreterErrs := gl.Interpreter.interpret(stmts)
+
+	if interpreterErrs != nil {
+		panic(interpreterErrs)
+	}
 }

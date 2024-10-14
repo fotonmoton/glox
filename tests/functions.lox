@@ -4,6 +4,7 @@ print "native function";
 print clock();
 
 fun count(n) {
+    print n;
     if (n > 1) count(n - 1);
     print n;
 }
@@ -42,7 +43,6 @@ fun fib(n) {
 for (var i = 1; i <= 10; i = i + 1) {
     print fib(i);
 }
-
 
 fun makeCounter() {
     var i = 0;

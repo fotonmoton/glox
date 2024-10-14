@@ -60,7 +60,7 @@ type Call struct {
 type Lambda struct {
 	name Token
 	args []Token
-	body *BlockStmt
+	body []Stmt
 }
 
 func (c *Call) expr()     {}

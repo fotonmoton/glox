@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -10,6 +11,7 @@ import (
 type Interpreter struct {
 	env     *Environment
 	globals *Environment
+	locals  map[Expr]int
 	errors  []error
 	brk     bool
 }
@@ -36,12 +38,13 @@ func newInterpreter() *Interpreter {
 	return &Interpreter{
 		env:     globals,
 		globals: globals,
+		locals:  map[Expr]int{},
 		errors:  []error{},
 		brk:     false,
 	}
 }
 
-func (i *Interpreter) interpret(stmts []Stmt) []error {
+func (i *Interpreter) interpret(stmts []Stmt) error {
 	defer i.recover()
 
 	i.errors = []error{}
@@ -50,7 +53,7 @@ func (i *Interpreter) interpret(stmts []Stmt) []error {
 		stmt.accept(i)
 	}
 
-	return i.errors
+	return errors.Join(i.errors...)
 }
 
 func (i *Interpreter) recover() {
@@ -135,12 +138,19 @@ func (i *Interpreter) visitUnary(u *Unary) any {
 }
 
 func (i *Interpreter) visitVariable(v *Variable) any {
-	return i.env.get(v.name.lexeme)
+	return i.lookUpVariable(v.name, v)
 }
 
 func (i *Interpreter) visitAssignment(a *Assign) any {
 	val := i.evaluate(a.value)
-	err := i.env.assign(a.variable, val)
+	distance, isLocal := i.locals[a]
+
+	if isLocal {
+		i.env.assignAt(distance, a.variable, val)
+		return val
+	}
+
+	err := i.globals.assign(a.variable, val)
 	if err != nil {
 		i.panic(err)
 	}
@@ -229,10 +239,10 @@ func (i *Interpreter) visitVarStmt(v *VarStmt) {
 }
 
 func (i *Interpreter) visitBlockStmt(b *BlockStmt) {
-	i.executeBlock(b, newEnvironment(i.env))
+	i.executeBlock(b.stmts, newEnvironment(i.env))
 }
 
-func (i *Interpreter) executeBlock(b *BlockStmt, current *Environment) {
+func (i *Interpreter) executeBlock(stmts []Stmt, current *Environment) {
 
 	parentEnv := i.env
 	i.env = current
@@ -243,7 +253,7 @@ func (i *Interpreter) executeBlock(b *BlockStmt, current *Environment) {
 		i.env = parentEnv
 	}()
 
-	for _, stmt := range b.stmts {
+	for _, stmt := range stmts {
 
 		if i.brk {
 			break
@@ -259,7 +269,7 @@ func (i *Interpreter) visitBreakStmt(b *BreakStmt) {
 }
 
 func (i *Interpreter) visitIfStmt(iff *IfStmt) {
-	if isTruthy(i.evaluate(iff.expr)) {
+	if isTruthy(i.evaluate(iff.cond)) {
 		iff.then.accept(i)
 
 	} else if iff.or != nil {
@@ -278,6 +288,8 @@ func (i *Interpreter) visitEnvStmt(e *EnvStmt) {
 		walker = walker.enclosing
 	}
 
+	fmt.Printf("globals: %+v\n", *i.globals)
+
 	for ident, e := range flatten {
 		fmt.Printf("%*s", ident, "")
 		fmt.Printf("%+v\n", *e)
@@ -294,6 +306,20 @@ func (i *Interpreter) visitWhileStmt(w *WhileStmt) {
 
 		w.body.accept(i)
 	}
+}
+
+func (i *Interpreter) resolve(expr Expr, depth int) {
+	i.locals[expr] = depth
+}
+
+func (i *Interpreter) lookUpVariable(name Token, expr Expr) any {
+	distance, isLocal := i.locals[expr]
+
+	if !isLocal {
+		return i.globals.get(name.lexeme)
+	}
+
+	return i.env.getAt(distance, name.lexeme)
 }
 
 func (i *Interpreter) panic(re *RuntimeError) {
