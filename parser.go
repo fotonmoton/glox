@@ -17,7 +17,12 @@ type ParseError struct {
 }
 
 func (pe *ParseError) Error() string {
-	return fmt.Sprintf("ParseError [%d][%s]: %s", pe.token.line, pe.token.typ, pe.message)
+	return fmt.Sprintf(
+		"ParseError [%d][%s]: %s",
+		pe.token.line,
+		pe.token.typ,
+		pe.message,
+	)
 }
 
 func newParser(tokens []Token) *Parser {
