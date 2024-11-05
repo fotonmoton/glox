@@ -11,6 +11,7 @@ type StmtVisitor interface {
 	visitWhileStmt(w *WhileStmt)
 	visitBreakStmt(b *BreakStmt)
 	visitReturnStmt(r *ReturnStmt)
+	visitClassStmt(c *ClassStmt)
 }
 
 type Stmt interface {
@@ -49,6 +50,11 @@ type WhileStmt struct {
 	body Stmt
 }
 
+type ClassStmt struct {
+	name    Token
+	methods []FunStmt
+}
+
 type BreakStmt struct{}
 
 type FunStmt struct {
@@ -71,6 +77,7 @@ func (b *BlockStmt) stmt()  {}
 func (w *WhileStmt) stmt()  {}
 func (b *BreakStmt) stmt()  {}
 func (r *ReturnStmt) stmt() {}
+func (c *ClassStmt) stmt()  {}
 
 func (p *PrintStmt) accept(v StmtVisitor) {
 	v.visitPrintStmt(p)
@@ -110,4 +117,8 @@ func (f *FunStmt) accept(v StmtVisitor) {
 
 func (r *ReturnStmt) accept(v StmtVisitor) {
 	v.visitReturnStmt(r)
+}
+
+func (c *ClassStmt) accept(v StmtVisitor) {
+	v.visitClassStmt(c)
 }

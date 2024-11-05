@@ -190,3 +190,7 @@ func (as *AstStringer) visitReturnStmt(r *ReturnStmt) {
 	r.value.accept(as)
 	as.str.WriteString(")")
 }
+
+func (as *AstStringer) visitClassStmt(c *ClassStmt) {
+	fmt.Printf("(class %s)", c.name.lexeme)
+}

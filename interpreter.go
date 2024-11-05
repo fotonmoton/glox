@@ -205,6 +205,12 @@ func (i *Interpreter) visitFunStmt(f *FunStmt) {
 	i.env.define(f.name.lexeme, newFunction(f.name, f.args, f.body, i.env))
 }
 
+func (i *Interpreter) visitClassStmt(c *ClassStmt) {
+	i.env.define(c.name.lexeme, nil)
+	class := &Class{c.name.lexeme}
+	i.env.assign(c.name, class)
+
+}
 func (i *Interpreter) visitLambda(l *Lambda) any {
 	return newFunction(l.name, l.args, l.body, i.env)
 }

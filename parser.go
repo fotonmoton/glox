@@ -48,7 +48,8 @@ func (p *Parser) parse() ([]Stmt, error) {
 	return stmts, errors.Join(p.errors...)
 }
 
-// declaration -> varDecl | funDecl | statement
+// declaration ->
+// varDecl | funDecl | classDecl | statement
 func (p *Parser) declaration() Stmt {
 	defer p.synchronize()
 	if p.match(VAR) {
@@ -57,6 +58,10 @@ func (p *Parser) declaration() Stmt {
 
 	if p.match(FUN) {
 		return p.function("function")
+	}
+
+	if p.match(CLASS) {
+		return p.classDecl()
 	}
 
 	return p.statement()
@@ -76,10 +81,23 @@ func (p *Parser) varDecl() Stmt {
 	return &VarStmt{name, initializer}
 }
 
+// classDecl -> "class" IDENTIFIER "{" function* "}"
+func (p *Parser) classDecl() Stmt {
+	name := p.consume(IDENTIFIER, "Expect identifier for variable")
+	p.consume(LEFT_BRACE, "Expect '{' after class identifier")
+
+	methods := []FunStmt{}
+	for !p.isAtEnd() && !p.check(RIGHT_BRACE) {
+		methods = append(methods, *p.function("method"))
+	}
+	p.consume(RIGHT_BRACE, "Expect '}' after class definition")
+	return &ClassStmt{name, methods}
+}
+
 // funDecl -> "fun" function
 // function -> IDENTIFIER "("  parameters? ")" blockStmt
 // parameters -> IDENTIFIER ( "," IDENTIFIER )*
-func (p *Parser) function(kind string) Stmt {
+func (p *Parser) function(kind string) *FunStmt {
 	name := p.consume(IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
 
 	p.consume(LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name.", kind))

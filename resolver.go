@@ -186,3 +186,8 @@ func (r *Resolver) visitUnary(u *Unary) any {
 	r.resolveExprs(u.right)
 	return nil
 }
+
+func (r *Resolver) visitClassStmt(c *ClassStmt) {
+	r.declare(c.name)
+	r.define(c.name)
+}
