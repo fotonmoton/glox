@@ -1,0 +1,32 @@
+
+class Car {
+
+}
+
+print Car;
+
+var opel = Car();
+
+env;
+
+print opel;
+
+opel.name = "Opel";
+
+class Engine {}
+
+print Engine;
+
+var eng = Engine();
+
+eng.power = "200hp";
+
+opel.engine = eng;
+
+print opel.engine.power;
+
+
+opel.run = fun () {
+}
+
+opel.run();

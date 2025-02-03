@@ -10,6 +10,18 @@ type AstStringer struct {
 	stmts []Stmt
 }
 
+func (as *AstStringer) visitGet(g *Get) any {
+	as.str.WriteString(fmt.Sprintf("(get %s)", g.name.lexeme))
+	return nil
+}
+
+func (as *AstStringer) visitSet(s *Set) any {
+	as.str.WriteString(fmt.Sprintf("(set %s ", s.name.lexeme))
+	s.obj.accept(as)
+	as.str.WriteString(")")
+	return nil
+}
+
 func (as AstStringer) String() string {
 
 	for _, stmt := range as.stmts {

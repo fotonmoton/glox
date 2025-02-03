@@ -10,6 +10,8 @@ type ExprVisitor interface {
 	visitVariable(v *Variable) any
 	visitLogical(l *Logical) any
 	visitAssignment(a *Assign) any
+	visitGet(g *Get) any
+	visitSet(s *Set) any
 }
 
 type Expr interface {
@@ -63,6 +65,17 @@ type Lambda struct {
 	body []Stmt
 }
 
+type Get struct {
+	name Token
+	obj  Expr
+}
+
+type Set struct {
+	name  Token
+	obj   Expr
+	value Expr
+}
+
 func (c *Call) expr()     {}
 func (u *Unary) expr()    {}
 func (a *Assign) expr()   {}
@@ -72,6 +85,8 @@ func (l *Literal) expr()  {}
 func (g *Grouping) expr() {}
 func (v *Variable) expr() {}
 func (l *Logical) expr()  {}
+func (g *Get) expr()      {}
+func (s *Set) expr()      {}
 
 func (u *Unary) accept(v ExprVisitor) any {
 	return v.visitUnary(u)
@@ -107,4 +122,12 @@ func (c *Call) accept(v ExprVisitor) any {
 
 func (l *Lambda) accept(v ExprVisitor) any {
 	return v.visitLambda(l)
+}
+
+func (g *Get) accept(v ExprVisitor) any {
+	return v.visitGet(g)
+}
+
+func (s *Set) accept(v ExprVisitor) any {
+	return v.visitSet(s)
 }

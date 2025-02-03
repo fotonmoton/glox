@@ -191,3 +191,14 @@ func (r *Resolver) visitClassStmt(c *ClassStmt) {
 	r.declare(c.name)
 	r.define(c.name)
 }
+
+func (r *Resolver) visitGet(g *Get) any {
+	r.resolveExprs(g.obj)
+	return nil
+}
+
+func (r *Resolver) visitSet(s *Set) any {
+	r.resolveExprs(s.value)
+	r.resolveExprs(s.obj)
+	return nil
+}

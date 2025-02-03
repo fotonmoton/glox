@@ -76,7 +76,7 @@ func (p *Parser) varDecl() Stmt {
 		initializer = p.expression()
 	}
 
-	p.consume(SEMICOLON, "Expect ';' after expression.")
+	p.consume(SEMICOLON, "Expect ';' after expression in var declaration;")
 
 	return &VarStmt{name, initializer}
 }
@@ -174,7 +174,7 @@ func (p *Parser) statement() Stmt {
 // exprStmt -> expression ";"
 func (p *Parser) exprStmt() Stmt {
 	expr := p.expression()
-	p.consume(SEMICOLON, "Expect ';' after expression.")
+	p.consume(SEMICOLON, "Expect ';' after statement.")
 
 	if expr == nil {
 		return nil
@@ -191,7 +191,7 @@ func (p *Parser) printStmt() Stmt {
 		p.panic(&ParseError{p.previous(), "Expect expression after 'print'"})
 	}
 
-	p.consume(SEMICOLON, "Expect ';' after expression.")
+	p.consume(SEMICOLON, "Expect ';' after print expression.")
 	return &PrintStmt{expr}
 }
 
@@ -316,7 +316,7 @@ func (p *Parser) expression() Expr {
 	return p.assignment()
 }
 
-// assignment -> IDENTIFIER "=" assignment | or
+// assignment -> (call ".")? IDENTIFIER "=" assignment | or
 func (p *Parser) assignment() Expr {
 	expr := p.or()
 
@@ -326,11 +326,12 @@ func (p *Parser) assignment() Expr {
 
 		if variable, ok := expr.(*Variable); ok {
 			return &Assign{variable.name, val}
+		} else if get, ok := expr.(*Get); ok {
+			return &Set{get.name, get.obj, val}
 		}
 
 		p.panic(&ParseError{eq, "Invalid assignment target."})
 	}
-
 	return expr
 }
 
@@ -424,13 +425,16 @@ func (p *Parser) unary() Expr {
 	return p.call()
 }
 
-// call ->  primary ( "(" arguments? ")"  )*
+// call ->  primary ( "(" arguments? ")" | "." IDENTIFIER )*
 func (p *Parser) call() Expr {
 	expr := p.primary()
 
 	for {
 		if p.match(LEFT_PAREN) {
 			expr = p.arguments(expr)
+		} else if p.match(DOT) {
+			name := p.consume(IDENTIFIER, "Expect property name after '.'")
+			expr = &Get{name, expr}
 		} else {
 			break
 		}

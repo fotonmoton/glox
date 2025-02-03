@@ -201,6 +201,42 @@ func (i *Interpreter) visitCall(c *Call) any {
 	return callable.call(i, args...)
 }
 
+func (i *Interpreter) visitGet(g *Get) any {
+
+	object := i.evaluate(g.obj)
+
+	instance, ok := object.(*ClassInstance)
+
+	if !ok {
+		i.panic(&RuntimeError{g.name, "Only class instances can have properties"})
+	}
+
+	val, ok := instance.get(g.name.lexeme)
+
+	if !ok {
+		i.panic(&RuntimeError{g.name, fmt.Sprintf("Undefined propery %s", g.name.lexeme)})
+	}
+
+	return val
+}
+
+func (i *Interpreter) visitSet(s *Set) any {
+
+	object := i.evaluate(s.obj)
+
+	instance, ok := object.(*ClassInstance)
+
+	if !ok {
+		i.panic(&RuntimeError{s.name, "Only class instances have fields."})
+	}
+
+	value := i.evaluate(s.value)
+
+	instance.set(s.name.lexeme, value)
+
+	return value
+}
+
 func (i *Interpreter) visitFunStmt(f *FunStmt) {
 	i.env.define(f.name.lexeme, newFunction(f.name, f.args, f.body, i.env))
 }
